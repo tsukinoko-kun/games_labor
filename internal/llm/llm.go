@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gameslabor/internal/env"
 	"strings"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -88,6 +89,9 @@ func New(ctx context.Context) (*LLM, error) {
 		Required: []string{"narrator_text", "event_plan", "event_long_history", "event_short_history", "character_data", "place_data", "group_data", "roll_dice"},
 		Properties: map[string]*genai.Schema{
 			"narrator_text": {
+				Type: genai.TypeString,
+			},
+			"place": {
 				Type: genai.TypeString,
 			},
 			"event_plan": {
@@ -216,39 +220,73 @@ func (llm *LLM) Text(text string) ResponseSchema {
 	return resp
 }
 
+func appendTime(s string) string {
+	return fmt.Sprintf("%s %s", time.Now().Format(time.RFC3339), s)
+}
+
 func (llm *LLM) applyResponse(resp ResponseSchema) {
 	if resp.CharacterData != nil {
-		for _, characterData := range resp.CharacterData {
+		for i, characterData := range resp.CharacterData {
 			if llm.CharacterData == nil {
 				llm.CharacterData = make(map[string][]string)
 			}
-			llm.CharacterData[characterData.CharacterName] = append(llm.CharacterData[characterData.CharacterName], characterData.Data)
+			if i == 0 {
+				llm.CharacterData[characterData.CharacterName] = append(llm.CharacterData[characterData.CharacterName], appendTime(characterData.Data))
+			} else {
+				llm.CharacterData[characterData.CharacterName] = append(llm.CharacterData[characterData.CharacterName], characterData.Data)
+			}
 		}
 	}
 	if resp.PlaceData != nil {
-		for _, placeData := range resp.PlaceData {
+		for i, placeData := range resp.PlaceData {
 			if llm.PlaceData == nil {
 				llm.PlaceData = make(map[string][]string)
 			}
-			llm.PlaceData[placeData.PlaceName] = append(llm.PlaceData[placeData.PlaceName], placeData.Data)
+			if i == 0 {
+				llm.PlaceData[placeData.PlaceName] = append(llm.PlaceData[placeData.PlaceName], appendTime(placeData.Data))
+			} else {
+				llm.PlaceData[placeData.PlaceName] = append(llm.PlaceData[placeData.PlaceName], placeData.Data)
+			}
 		}
 	}
 	if resp.GroupData != nil {
-		for _, groupData := range resp.GroupData {
+		for i, groupData := range resp.GroupData {
 			if llm.GroupData == nil {
 				llm.GroupData = make(map[string][]string)
 			}
-			llm.GroupData[groupData.GroupName] = append(llm.GroupData[groupData.GroupName], groupData.Data)
+			if i == 0 {
+				llm.GroupData[groupData.GroupName] = append(llm.GroupData[groupData.GroupName], appendTime(groupData.Data))
+			} else {
+				llm.GroupData[groupData.GroupName] = append(llm.GroupData[groupData.GroupName], groupData.Data)
+			}
 		}
 	}
 	if resp.EventLongHistory != nil {
-		llm.EventLongHistory = append(llm.EventLongHistory, resp.EventLongHistory...)
+		for i, eventLongHistory := range resp.EventLongHistory {
+			if i == 0 {
+				llm.EventLongHistory = append(llm.EventLongHistory, appendTime(eventLongHistory))
+			} else {
+				llm.EventLongHistory = append(llm.EventLongHistory, eventLongHistory)
+			}
+		}
 	}
 	if resp.EventShortHistory != nil {
-		llm.EventShortHistory = append(llm.EventShortHistory, resp.EventShortHistory...)
+		for i, eventShortHistory := range resp.EventShortHistory {
+			if i == 0 {
+				llm.EventShortHistory = append(llm.EventShortHistory, appendTime(eventShortHistory))
+			} else {
+				llm.EventShortHistory = append(llm.EventShortHistory, eventShortHistory)
+			}
+		}
 	}
 	if resp.EventPlan != nil {
-		llm.EventPlan = append(llm.EventPlan, resp.EventPlan...)
+		for i, eventPlan := range resp.EventPlan {
+			if i == 0 {
+				llm.EventPlan = append(llm.EventPlan, appendTime(eventPlan))
+			} else {
+				llm.EventPlan = append(llm.EventPlan, eventPlan)
+			}
+		}
 	}
 }
 
