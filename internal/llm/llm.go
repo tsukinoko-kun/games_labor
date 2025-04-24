@@ -21,6 +21,8 @@ type LLM struct {
 	EventLongHistory  []string
 	EventShortHistory []string
 	CharacterData     map[string][]string
+	PlaceData         map[string][]string
+	GroupData         map[string][]string
 }
 
 type (
@@ -28,6 +30,16 @@ type (
 	CharacterData struct {
 		CharacterName string `json:"character"`
 		Data          string `json:"data"`
+	}
+
+	PlaceData struct {
+		PlaceName string `json:"place"`
+		Data      string `json:"data"`
+	}
+
+	GroupData struct {
+		GroupName string `json:"group"`
+		Data      string `json:"data"`
 	}
 
 	// RollDice corresponds to the nested object within the roll_dice result.
@@ -42,6 +54,8 @@ type (
 		EventLongHistory  []string        `json:"event_long_history"`
 		EventShortHistory []string        `json:"event_short_history"`
 		CharacterData     []CharacterData `json:"character_data"`
+		PlaceData         []PlaceData     `json:"place_data"`
+		GroupData         []GroupData     `json:"group_data"`
 		RollDice          *RollDice       `json:"roll_dice"`
 	}
 
@@ -50,11 +64,17 @@ type (
 		EventLongHistory  []string            `json:"event_long_history"`
 		EventShortHistory []string            `json:"event_short_history"`
 		CharacterData     map[string][]string `json:"character_data"`
+		PlaceData         map[string][]string `json:"place_data"`
+		GroupData         map[string][]string `json:"group_data"`
 	}
 )
 
-//go:embed system.txt
-var systemInstructionTxt string
+var (
+	//go:embed system.txt
+	systemInstructionTxt string
+	//go:embed start.txt
+	startPromptTxt string
+)
 
 func New(ctx context.Context) (*LLM, error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(env.GOOGLE_AI_API_KEY))
@@ -65,7 +85,7 @@ func New(ctx context.Context) (*LLM, error) {
 	model.ResponseMIMEType = "application/json"
 	model.ResponseSchema = &genai.Schema{
 		Type:     genai.TypeObject,
-		Required: []string{"narrator_text", "event_plan", "event_long_history", "event_short_history", "character_data", "roll_dice"},
+		Required: []string{"narrator_text", "event_plan", "event_long_history", "event_short_history", "character_data", "place_data", "group_data", "roll_dice"},
 		Properties: map[string]*genai.Schema{
 			"narrator_text": {
 				Type: genai.TypeString,
@@ -95,6 +115,36 @@ func New(ctx context.Context) (*LLM, error) {
 					Required: []string{"character", "data"},
 					Properties: map[string]*genai.Schema{
 						"character": {
+							Type: genai.TypeString,
+						},
+						"data": {
+							Type: genai.TypeString,
+						},
+					},
+				},
+			},
+			"place_data": {
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"place", "data"},
+					Properties: map[string]*genai.Schema{
+						"place": {
+							Type: genai.TypeString,
+						},
+						"data": {
+							Type: genai.TypeString,
+						},
+					},
+				},
+			},
+			"group_data": {
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"group", "data"},
+					Properties: map[string]*genai.Schema{
+						"group": {
 							Type: genai.TypeString,
 						},
 						"data": {
@@ -133,11 +183,6 @@ func (llm *LLM) Close() error {
 	return llm.client.Close()
 }
 
-func (llm *LLM) InitWithPrompt(prompt string) error {
-	llm.EventPlan = []string{prompt}
-	return nil
-}
-
 func (llm *LLM) Data() genai.Text {
 	sb := strings.Builder{}
 	data := PromptDataSchema{
@@ -145,11 +190,18 @@ func (llm *LLM) Data() genai.Text {
 		EventLongHistory:  llm.EventLongHistory,
 		EventShortHistory: llm.EventShortHistory,
 		CharacterData:     llm.CharacterData,
+		PlaceData:         llm.PlaceData,
+		GroupData:         llm.GroupData,
 	}
 	je := json.NewEncoder(&sb)
 	je.Encode(data)
 
 	return genai.Text(sb.String())
+}
+
+func (llm *LLM) Start(scenario string) ResponseSchema {
+	llm.EventPlan = append(llm.EventPlan, scenario)
+	return llm.Text(fmt.Sprintf(startPromptTxt, scenario))
 }
 
 func (llm *LLM) Text(text string) ResponseSchema {
@@ -171,6 +223,22 @@ func (llm *LLM) applyResponse(resp ResponseSchema) {
 				llm.CharacterData = make(map[string][]string)
 			}
 			llm.CharacterData[characterData.CharacterName] = append(llm.CharacterData[characterData.CharacterName], characterData.Data)
+		}
+	}
+	if resp.PlaceData != nil {
+		for _, placeData := range resp.PlaceData {
+			if llm.PlaceData == nil {
+				llm.PlaceData = make(map[string][]string)
+			}
+			llm.PlaceData[placeData.PlaceName] = append(llm.PlaceData[placeData.PlaceName], placeData.Data)
+		}
+	}
+	if resp.GroupData != nil {
+		for _, groupData := range resp.GroupData {
+			if llm.GroupData == nil {
+				llm.GroupData = make(map[string][]string)
+			}
+			llm.GroupData[groupData.GroupName] = append(llm.GroupData[groupData.GroupName], groupData.Data)
 		}
 	}
 	if resp.EventLongHistory != nil {

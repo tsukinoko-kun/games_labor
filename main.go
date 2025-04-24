@@ -12,9 +12,7 @@ func main() {
 		panic(err)
 	} else {
 		defer llmInstalce.Close()
-		llmInstalce.InitWithPrompt("Der Spieler möchte ein Action Abenteuer mit Schatzsuche-Elementen, ähnlich zu den Uncharted-Spielern. Das Setting soll im späten Mittelalter gesetzt sein mit Fantasy Elementen.")
-
-		resp := llmInstalce.Text("Hier startet das Spiel. Entwirf einen Start und führe den Spieler in die Geschichte ein. Gib dem Spieler subtil an, was hier passieren soll, um es ihm einfach zu machen, in die Geschichte zu starten. Hier sind `event_plan`, `event_short_history`, `event_long_history`, und `character_data` besonders wichtig.")
+		resp := llmInstalce.Start("Der Spieler möchte ein Action Abenteuer mit Schatzsuche-Elementen, ähnlich zu den Uncharted-Spielern. Das Setting soll im späten Mittelalter gesetzt sein mit Fantasy Elementen.")
 		fmt.Println(resp.JSON())
 
 		var prompt string
