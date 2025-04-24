@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"gameslabor/internal/llm"
-	"strings"
 )
 
 func main() {
@@ -14,18 +12,31 @@ func main() {
 		panic(err)
 	} else {
 		defer llmInstalce.Close()
+		llmInstalce.InitWithPrompt("Der Spieler möchte ein Action Abenteuer mit Schatzsuche-Elementen, ähnlich zu den Uncharted-Spielern. Das Setting soll im späten Mittelalter gesetzt sein mit Fantasy Elementen.")
 
-		prompt := "Der Spieler möchte ein Action Abenteuer mit Schatzsuche-Elementen, ähnlich zu den Uncharted-Spielern. Das Setting soll im späten Mittelalter gesetzt sein mit Fantasy Elementen."
-		for prompt != ".end" {
+		resp := llmInstalce.Text("Hier startet das Spiel. Entwirf einen Start und führe den Spieler in die Geschichte ein. Gib dem Spieler subtil an, was hier passieren soll, um es ihm einfach zu machen, in die Geschichte zu starten. Hier sind `event_plan`, `event_short_history`, `event_long_history`, und `character_data` besonders wichtig.")
+		fmt.Println(resp.JSON())
+
+		var prompt string
+		for {
+			fmt.Print("Enter: ")
+			for len(prompt) == 0 {
+				_, err := fmt.Scanln(&prompt)
+				if err != nil {
+					prompt = ""
+					fmt.Println("Error reading input:", err)
+					continue
+				}
+			}
+
+			if prompt == ".exit" {
+				break
+			}
+
 			resp := llmInstalce.Text(prompt)
-			sb := strings.Builder{}
-			je := json.NewEncoder(&sb)
-			je.SetIndent("", "  ")
-			je.Encode(&resp)
-			fmt.Println(sb.String())
+			fmt.Println(resp.JSON())
 
-			fmt.Println("Press Enter to continue...")
-			fmt.Scanln(&prompt)
+			prompt = ""
 		}
 	}
 }

@@ -26,7 +26,7 @@ type LLM struct {
 type (
 	// CharacterData corresponds to the object type within the character_data array.
 	CharacterData struct {
-		CharacterName string `json:"character_name"`
+		CharacterName string `json:"character"`
 		Data          string `json:"data"`
 	}
 
@@ -42,7 +42,7 @@ type (
 		EventLongHistory  []string        `json:"event_long_history"`
 		EventShortHistory []string        `json:"event_short_history"`
 		CharacterData     []CharacterData `json:"character_data"`
-		RollDice          []RollDice      `json:"roll_dice"`
+		RollDice          *RollDice       `json:"roll_dice"`
 	}
 
 	PromptDataSchema struct {
@@ -56,8 +56,6 @@ type (
 //go:embed system.txt
 var systemInstructionTxt string
 
-var characterData = make(map[string]string)
-
 func New(ctx context.Context) (*LLM, error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(env.GOOGLE_AI_API_KEY))
 	if err != nil {
@@ -65,9 +63,9 @@ func New(ctx context.Context) (*LLM, error) {
 	}
 	model := client.GenerativeModel("gemini-2.0-flash")
 	model.ResponseMIMEType = "application/json"
-	model.SystemInstruction = genai.NewUserContent(genai.Text(fmt.Sprintf(systemInstructionTxt, "Elbjorn")))
 	model.ResponseSchema = &genai.Schema{
-		Type: genai.TypeObject,
+		Type:     genai.TypeObject,
+		Required: []string{"narrator_text", "event_plan", "event_long_history", "event_short_history", "character_data", "roll_dice"},
 		Properties: map[string]*genai.Schema{
 			"narrator_text": {
 				Type: genai.TypeString,
@@ -93,9 +91,10 @@ func New(ctx context.Context) (*LLM, error) {
 			"character_data": {
 				Type: genai.TypeArray,
 				Items: &genai.Schema{
-					Type: genai.TypeObject,
+					Type:     genai.TypeObject,
+					Required: []string{"character", "data"},
 					Properties: map[string]*genai.Schema{
-						"character_name": {
+						"character": {
 							Type: genai.TypeString,
 						},
 						"data": {
@@ -105,23 +104,24 @@ func New(ctx context.Context) (*LLM, error) {
 				},
 			},
 			"roll_dice": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type: genai.TypeObject,
-					Properties: map[string]*genai.Schema{
-						"result": {
-							Type: genai.TypeObject,
-							Properties: map[string]*genai.Schema{
-								"difficulty": {
-									Type: genai.TypeInteger,
-								},
-							},
-						},
+				Type:     genai.TypeObject,
+				Nullable: true,
+				Required: []string{"difficulty"},
+				Properties: map[string]*genai.Schema{
+					"difficulty": {
+						Type: genai.TypeInteger,
 					},
 				},
 			},
 		},
 	}
+	model.SystemInstruction = genai.NewUserContent(
+		genai.Text(fmt.Sprintf(
+			systemInstructionTxt,
+			TranslateGenaiSchemaToJSONSchema(model.ResponseSchema),
+			"Elbjorn",
+		)))
+
 	return &LLM{
 		ctx:    ctx,
 		client: client,
@@ -131,6 +131,11 @@ func New(ctx context.Context) (*LLM, error) {
 
 func (llm *LLM) Close() error {
 	return llm.client.Close()
+}
+
+func (llm *LLM) InitWithPrompt(prompt string) error {
+	llm.EventPlan = []string{prompt}
+	return nil
 }
 
 func (llm *LLM) Data() genai.Text {
@@ -162,6 +167,9 @@ func (llm *LLM) Text(text string) ResponseSchema {
 func (llm *LLM) applyResponse(resp ResponseSchema) {
 	if resp.CharacterData != nil {
 		for _, characterData := range resp.CharacterData {
+			if llm.CharacterData == nil {
+				llm.CharacterData = make(map[string][]string)
+			}
 			llm.CharacterData[characterData.CharacterName] = append(llm.CharacterData[characterData.CharacterName], characterData.Data)
 		}
 	}
@@ -174,4 +182,13 @@ func (llm *LLM) applyResponse(resp ResponseSchema) {
 	if resp.EventPlan != nil {
 		llm.EventPlan = append(llm.EventPlan, resp.EventPlan...)
 	}
+}
+
+func (resp ResponseSchema) JSON() string {
+	sb := strings.Builder{}
+	jd := json.NewEncoder(&sb)
+	jd.SetIndent("", "  ")
+	jd.Encode(resp)
+
+	return sb.String()
 }
