@@ -1,4 +1,4 @@
-package llm
+package ai
 
 import (
 	"context"
@@ -10,14 +10,17 @@ import (
 	"strings"
 	"time"
 
+	tts "cloud.google.com/go/texttospeech/apiv1"
+	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
-type LLM struct {
+type AI struct {
 	ctx               context.Context
-	client            *genai.Client
-	model             *genai.GenerativeModel
+	llmClient         *genai.Client
+	llmModel          *genai.GenerativeModel
+	ttsClient         *tts.Client
 	EventPlan         []string
 	EventLongHistory  []string
 	EventShortHistory []string
@@ -77,117 +80,39 @@ var (
 	startPromptTxt string
 )
 
-func New(ctx context.Context) (*LLM, error) {
-	client, err := genai.NewClient(ctx, option.WithAPIKey(env.GOOGLE_AI_API_KEY))
+func New(ctx context.Context) (*AI, error) {
+	llmClient, err := genai.NewClient(ctx, option.WithAPIKey(env.GOOGLE_API_KEY))
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create gemini client"), err)
 	}
-	model := client.GenerativeModel("gemini-2.0-flash")
-	model.ResponseMIMEType = "application/json"
-	model.ResponseSchema = &genai.Schema{
-		Type:     genai.TypeObject,
-		Required: []string{"narrator_text", "event_plan", "event_long_history", "event_short_history", "character_data", "place_data", "group_data", "roll_dice"},
-		Properties: map[string]*genai.Schema{
-			"narrator_text": {
-				Type: genai.TypeString,
-			},
-			"place": {
-				Type: genai.TypeString,
-			},
-			"event_plan": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type: genai.TypeString,
-				},
-			},
-			"event_long_history": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type: genai.TypeString,
-				},
-			},
-			"event_short_history": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type: genai.TypeString,
-				},
-			},
-			"character_data": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type:     genai.TypeObject,
-					Required: []string{"character", "data"},
-					Properties: map[string]*genai.Schema{
-						"character": {
-							Type: genai.TypeString,
-						},
-						"data": {
-							Type: genai.TypeString,
-						},
-					},
-				},
-			},
-			"place_data": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type:     genai.TypeObject,
-					Required: []string{"place", "data"},
-					Properties: map[string]*genai.Schema{
-						"place": {
-							Type: genai.TypeString,
-						},
-						"data": {
-							Type: genai.TypeString,
-						},
-					},
-				},
-			},
-			"group_data": {
-				Type: genai.TypeArray,
-				Items: &genai.Schema{
-					Type:     genai.TypeObject,
-					Required: []string{"group", "data"},
-					Properties: map[string]*genai.Schema{
-						"group": {
-							Type: genai.TypeString,
-						},
-						"data": {
-							Type: genai.TypeString,
-						},
-					},
-				},
-			},
-			"roll_dice": {
-				Type:     genai.TypeObject,
-				Nullable: true,
-				Required: []string{"difficulty"},
-				Properties: map[string]*genai.Schema{
-					"difficulty": {
-						Type: genai.TypeInteger,
-					},
-				},
-			},
-		},
-	}
-	model.SystemInstruction = genai.NewUserContent(
+	llmModel := llmClient.GenerativeModel("gemini-2.0-flash")
+	llmModel.ResponseMIMEType = "application/json"
+	llmModel.ResponseSchema = llmResponseGenaiSchema
+	llmModel.SystemInstruction = genai.NewUserContent(
 		genai.Text(fmt.Sprintf(
 			systemInstructionTxt,
-			TranslateGenaiSchemaToJSONSchema(model.ResponseSchema),
-			"Elbjorn",
+			TranslateGenaiSchemaToJSONSchema(llmModel.ResponseSchema),
 		)))
 
-	return &LLM{
-		ctx:    ctx,
-		client: client,
-		model:  model,
+	ttsClient, err := tts.NewClient(ctx, option.WithAPIKey(env.GOOGLE_API_KEY))
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to create tts client"), err)
+	}
+
+	return &AI{
+		ctx:       ctx,
+		llmClient: llmClient,
+		llmModel:  llmModel,
+		ttsClient: ttsClient,
 	}, nil
 }
 
-func (llm *LLM) Close() error {
-	return llm.client.Close()
+func (llm *AI) Close() {
+	_ = llm.llmClient.Close()
+	_ = llm.ttsClient.Close()
 }
 
-func (llm *LLM) Data() genai.Text {
+func (llm *AI) Data() genai.Text {
 	sb := strings.Builder{}
 	data := PromptDataSchema{
 		EventPlan:         llm.EventPlan,
@@ -203,13 +128,13 @@ func (llm *LLM) Data() genai.Text {
 	return genai.Text(sb.String())
 }
 
-func (llm *LLM) Start(scenario string) ResponseSchema {
+func (llm *AI) Start(scenario string) ResponseSchema {
 	llm.EventPlan = append(llm.EventPlan, scenario)
 	return llm.Text(fmt.Sprintf(startPromptTxt, scenario))
 }
 
-func (llm *LLM) Text(text string) ResponseSchema {
-	respIter := llm.model.GenerateContentStream(llm.ctx, genai.Text(text))
+func (llm *AI) Text(text string) ResponseSchema {
+	respIter := llm.llmModel.GenerateContentStream(llm.ctx, genai.Text(text))
 	restReader := NewGenAIResponseReader(respIter)
 	jd := json.NewDecoder(restReader)
 	resp := ResponseSchema{}
@@ -224,7 +149,7 @@ func appendTime(s string) string {
 	return fmt.Sprintf("%s %s", time.Now().Format(time.RFC3339), s)
 }
 
-func (llm *LLM) applyResponse(resp ResponseSchema) {
+func (llm *AI) applyResponse(resp ResponseSchema) {
 	if resp.CharacterData != nil {
 		for i, characterData := range resp.CharacterData {
 			if llm.CharacterData == nil {
@@ -297,4 +222,28 @@ func (resp ResponseSchema) JSON() string {
 	jd.Encode(resp)
 
 	return sb.String()
+}
+
+func (ai *AI) TTS(text string) (string, error) {
+	req := texttospeechpb.SynthesizeSpeechRequest{
+		Input: &texttospeechpb.SynthesisInput{
+			InputSource: &texttospeechpb.SynthesisInput_Text{Text: text},
+		},
+		Voice: &texttospeechpb.VoiceSelectionParams{
+			LanguageCode: "de-DE",
+			SsmlGender:   texttospeechpb.SsmlVoiceGender_MALE,
+		},
+		AudioConfig: &texttospeechpb.AudioConfig{
+			AudioEncoding: texttospeechpb.AudioEncoding_MP3,
+			Pitch:         -2.,
+			SpeakingRate:  .9,
+		},
+	}
+
+	ctx := context.Background()
+	resp, err := ai.ttsClient.SynthesizeSpeech(ctx, &req)
+	if err != nil {
+		return "", errors.Join(errors.New("failed to synthesize speech"), err)
+	}
+	return saveMp3(resp.GetAudioContent())
 }

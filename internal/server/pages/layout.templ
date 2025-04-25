@@ -1,0 +1,22 @@
+package pages
+
+import "gameslabor/internal/server/public"
+
+templ layout(title string) {
+	<!DOCTYPE html>
+	<html lang="de" class="scheme-only-dark text-amber-50 bg-cover bg-center bg-black accent-purple-500 min-h-lvh">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<link rel="stylesheet" href={ public.Path("style.min.css") } integrity={ public.Integrity("style.min.css") }/>
+			<link rel="icon" href={ public.Path("favicon.svg") } type="image/svg+xml" integrity={ public.Integrity("favicon.svg") }/>
+			<title>{ title }</title>
+			<meta name="htmx-config" content='{"historyCacheSize": 0}'/>
+		</head>
+		<body>
+			<main>
+				{ children... }
+			</main>
+		</body>
+	</html>
+}

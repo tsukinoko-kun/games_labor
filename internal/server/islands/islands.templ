@@ -1,0 +1,46 @@
+package islands
+
+import (
+	"compress/gzip"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
+templ Island(name string, props any) {
+	<div
+		data-island={ name }
+		data-props={ marshalProps(props) }
+	>
+		{ children... }
+	</div>
+}
+
+const propsNull = "H4sIAAAAAAAA/8orzckBBAAA//9P/MslBAAAAA=="
+
+func marshalProps(props any) string {
+	var strBuilder strings.Builder
+
+	b64Writer := base64.NewEncoder(base64.StdEncoding, &strBuilder)
+	defer b64Writer.Close()
+	gzWriter := gzip.NewWriter(b64Writer)
+	defer gzWriter.Close()
+	jsonEncoder := json.NewEncoder(gzWriter)
+
+	if err := jsonEncoder.Encode(props); err != nil {
+		fmt.Printf("failed to encode JSON: %v\n", err)
+		return propsNull
+	}
+
+	if err := gzWriter.Close(); err != nil {
+		fmt.Printf("failed to close gzip writer: %v\n", err)
+		return propsNull
+	}
+	if err := b64Writer.Close(); err != nil {
+		fmt.Printf("failed to close base64 writer: %v\n", err)
+		return propsNull
+	}
+
+	return strBuilder.String()
+}

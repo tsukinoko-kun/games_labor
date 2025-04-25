@@ -2,13 +2,16 @@ package env
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
 var (
-	GOOGLE_AI_API_KEY string
+	GOOGLE_API_KEY string
+	PORT           int
 )
 
 func loadEnv() {
@@ -43,10 +46,23 @@ func loadEnv() {
 
 func init() {
 	loadEnv()
-	if googleAiApiKey := os.Getenv("GOOGLE_AI_API_KEY"); googleAiApiKey != "" {
-		GOOGLE_AI_API_KEY = googleAiApiKey
+	if googleAiApiKey := os.Getenv("GOOGLE_API_KEY"); googleAiApiKey != "" {
+		GOOGLE_API_KEY = googleAiApiKey
 	} else {
-		fmt.Println("GOOGLE_AI_API_KEY environment variable not set")
+		fmt.Println("GOOGLE_API_KEY environment variable not set")
 		os.Exit(1)
 	}
+	if port := os.Getenv("PORT"); port != "" {
+		var err error
+		PORT, err = strconv.Atoi(port)
+		if err != nil {
+			fmt.Printf("error parsing PORT environment variable: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		PORT = 8080
+	}
+
+	flag.IntVar(&PORT, "port", PORT, "Port to listen on")
+	flag.Parse()
 }

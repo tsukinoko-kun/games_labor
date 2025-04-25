@@ -1,0 +1,28 @@
+package pages
+
+import "gameslabor/internal/games"
+
+templ index() {
+	@layout("Games Labor") {
+		<p class="text-2xl font-bold">Welcome to Games Labor!</p>
+		<ul>
+			for id, _ := range games.Games {
+				<li>{ id }</li>
+			}
+		</ul>
+		<a href="/api/new_game">Create New Game</a>
+		<footer>
+			<a
+				class="text-blue-500 hover:text-blue-700 underline"
+				target="_blank"
+				ref="noopener noreferrer"
+				href="https://www.flaticon.com/free-icons/magic-book"
+				title="magic book icons"
+			>Favicon created by designbydai - Flaticon</a>
+		</footer>
+	}
+}
+
+func init() {
+	pageRegister["/"] = index
+}

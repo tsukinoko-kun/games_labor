@@ -1,0 +1,24 @@
+package pages
+
+import (
+	"fmt"
+	"gameslabor/internal/games"
+	"gameslabor/internal/server/context"
+	"gameslabor/internal/server/islands"
+	"gameslabor/internal/server/public"
+)
+
+templ game() {
+	@layout("Games Labor") {
+		if game, ok := games.Games[ctx.Value("id").(string)]; ok {
+			@islands.Island("Game", game)
+		} else {
+			<p class="text-lg font-semibold">{ fmt.Sprintf("Game %q not found", ctx.Value(context.UserID).(string)) }</p>
+		}
+		<script src={ public.Path("js/islands.js") } integrity={ public.Integrity("js/islands.js") }></script>
+	}
+}
+
+func init() {
+	pageRegister["/game"] = game
+}

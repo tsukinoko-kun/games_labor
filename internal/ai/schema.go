@@ -1,4 +1,4 @@
-package llm
+package ai
 
 import (
 	"encoding/json"
@@ -7,6 +7,92 @@ import (
 
 	"github.com/google/generative-ai-go/genai"
 )
+
+var llmResponseGenaiSchema = &genai.Schema{
+	Type:     genai.TypeObject,
+	Required: []string{"narrator_text", "event_plan", "event_long_history", "event_short_history", "character_data", "place_data", "group_data", "roll_dice"},
+	Properties: map[string]*genai.Schema{
+		"narrator_text": {
+			Type: genai.TypeString,
+		},
+		"place": {
+			Type: genai.TypeString,
+		},
+		"event_plan": {
+			Type: genai.TypeArray,
+			Items: &genai.Schema{
+				Type: genai.TypeString,
+			},
+		},
+		"event_long_history": {
+			Type: genai.TypeArray,
+			Items: &genai.Schema{
+				Type: genai.TypeString,
+			},
+		},
+		"event_short_history": {
+			Type: genai.TypeArray,
+			Items: &genai.Schema{
+				Type: genai.TypeString,
+			},
+		},
+		"character_data": {
+			Type: genai.TypeArray,
+			Items: &genai.Schema{
+				Type:     genai.TypeObject,
+				Required: []string{"character", "data"},
+				Properties: map[string]*genai.Schema{
+					"character": {
+						Type: genai.TypeString,
+					},
+					"data": {
+						Type: genai.TypeString,
+					},
+				},
+			},
+		},
+		"place_data": {
+			Type: genai.TypeArray,
+			Items: &genai.Schema{
+				Type:     genai.TypeObject,
+				Required: []string{"place", "data"},
+				Properties: map[string]*genai.Schema{
+					"place": {
+						Type: genai.TypeString,
+					},
+					"data": {
+						Type: genai.TypeString,
+					},
+				},
+			},
+		},
+		"group_data": {
+			Type: genai.TypeArray,
+			Items: &genai.Schema{
+				Type:     genai.TypeObject,
+				Required: []string{"group", "data"},
+				Properties: map[string]*genai.Schema{
+					"group": {
+						Type: genai.TypeString,
+					},
+					"data": {
+						Type: genai.TypeString,
+					},
+				},
+			},
+		},
+		"roll_dice": {
+			Type:     genai.TypeObject,
+			Nullable: true,
+			Required: []string{"difficulty"},
+			Properties: map[string]*genai.Schema{
+				"difficulty": {
+					Type: genai.TypeInteger,
+				},
+			},
+		},
+	},
+}
 
 // TranslateGenaiSchemaToJSONSchema translates a genai.Schema to
 // a JSON-Schema string.
