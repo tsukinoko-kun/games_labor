@@ -1,7 +1,13 @@
 package games
 
 import (
+	"context"
+	"fmt"
+	"gameslabor/internal/ai"
+	"gameslabor/internal/games/scenarios"
 	"gameslabor/internal/server/hub"
+	"log"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -9,7 +15,9 @@ import (
 type (
 	Game struct {
 		ID      string             `json:"id"`
+		AI      *ai.AI             `json:"ai"`
 		Players map[string]*Player `json:"players"`
+		mut     sync.Mutex         `json:"-"`
 		State   GameState          `json:"state"`
 	}
 
@@ -32,12 +40,16 @@ func newWithId(id string) *Game {
 		ID:      id,
 		State:   GameStateInit,
 		Players: make(map[string]*Player),
+		mut:     sync.Mutex{},
 	}
 	Games[id] = game
 	return game
 }
 
 func (g *Game) AddPlayer(playerID string) {
+	g.mut.Lock()
+	defer g.mut.Unlock()
+
 	if _, ok := g.Players[playerID]; ok {
 		return
 	}
@@ -45,14 +57,59 @@ func (g *Game) AddPlayer(playerID string) {
 }
 
 func (g *Game) SetPlayerDescription(playerID string, description string) {
+	g.mut.Lock()
+	defer g.mut.Unlock()
+
 	if player, ok := g.Players[playerID]; ok {
 		player.Description = description
 		hub.Broadcast(g.ID, g)
 	}
 }
 
-func (g *Game) Start(playerID string, scenario string, violenceLevel uint8, duration uint8) {
+func (g *Game) PlayerInput(playerID string, input string) {
+	g.mut.Lock()
+	defer g.mut.Unlock()
 
+	if g.State != GameStateRunning {
+		return
+	}
+
+	resp := g.AI.Continue(fmt.Sprintf(`Spieler %s sagt: %s`, playerID, input))
+	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input})
+	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
+	hub.Broadcast(g.ID, g)
+}
+
+func (g *Game) Start(playerID string, scenario string, violenceLevel uint8, duration uint8) {
+	g.mut.Lock()
+	defer g.mut.Unlock()
+
+	if g.State != GameStateInit {
+		return
+	}
+
+	ctx := context.Background()
+	s, err := scenarios.FromID(scenario)
+	if err != nil {
+		log.Printf("failed to get scenario description: %v", err)
+		return
+	}
+	g.State = GameStateRunning
+	g.AI, err = ai.New(ctx)
+	if err != nil {
+		log.Printf("failed to create AI: %v", err)
+		return
+	}
+
+	for _, player := range g.Players {
+		g.AI.CharacterData[player.ID] = []string{player.Description}
+	}
+	hub.Broadcast(g.ID, g)
+
+	resp := g.AI.Start(s)
+	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
+	fmt.Printf("First message: %s\n", resp.JSON())
+	hub.Broadcast(g.ID, g)
 }
 
 func init() {

@@ -2,6 +2,15 @@ Hier startet das Spiel. Entwirf einen Start und führe den Spieler in die Geschi
 
 Fange direkt damit an einige Informationen in `event_plan`, `event_short_history`, `event_long_history`, `character_data`, `place_data`, und `group_data` abzuspeichern. Plane jetzt den groben Ablauf der Geschichte. Lege fest in welche grobe Richtung die Geschichte gehen soll. Erschaffe Charaktere, Orte und Gruppen, die für diese Geschichte relevant sind.
 
+Fülle vor allem den `event_plan` jetzt mit vielen Informationen und mache dir damit einen groben Plan, was im Verlauf der Geschichte passieren soll.
+
 Der Spieler wünscht sich folgendes Szenario:
 
 %s
+
+Spielstil & Führung
+- Spieler-Entscheidungen haben spürbare Folgen
+- Ausgewogenheit von Kampf, Rätseln und Social-Interaction
+- Erfahrungsgewinn durch Erkundung, Diplomatie und Kämpfe
+- Ausrüstung, magische Schriftrollen und Ruf bei Fraktionen
+- Risiko vs. Belohnung austarieren, um Spannung zu halten

@@ -78,7 +78,7 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 				log.Println("ws read:", err)
 				break
 			}
-			game.SetPlayerDescription(ctx.UserID, descriptionAction.Value)
+			go game.SetPlayerDescription(ctx.UserID, descriptionAction.Value)
 		case "start":
 			startAction := gameState_startAction{}
 			jd := json.NewDecoder(bytes.NewReader(message))
@@ -86,7 +86,7 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 				log.Println("ws read:", err)
 				break
 			}
-			game.Start(ctx.UserID, startAction.Scenario, startAction.ViolenceLevel, startAction.Duration)
+			go game.Start(ctx.UserID, startAction.Scenario, startAction.ViolenceLevel, startAction.Duration)
 		}
 	}
 }

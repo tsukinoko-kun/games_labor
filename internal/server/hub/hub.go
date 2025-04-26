@@ -1,6 +1,12 @@
 package hub
 
-import "github.com/gorilla/websocket"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/gorilla/websocket"
+)
 
 var (
 	clients    = make(map[string]map[*Client]bool)
@@ -66,5 +72,9 @@ func (client *Client) Close() {
 }
 
 func Broadcast(id string, data any) {
+	sb := strings.Builder{}
+	je := json.NewEncoder(&sb)
+	_ = je.Encode(data)
+	fmt.Println("Broadcasting message:", sb.String())
 	broadcast <- Message{ID: id, Data: data}
 }

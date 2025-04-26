@@ -17,16 +17,17 @@ import (
 )
 
 type AI struct {
-	ctx               context.Context
-	llmClient         *genai.Client
-	llmModel          *genai.GenerativeModel
-	ttsClient         *tts.Client
-	EventPlan         []string
-	EventLongHistory  []string
-	EventShortHistory []string
-	CharacterData     map[string][]string
-	PlaceData         map[string][]string
-	GroupData         map[string][]string
+	ctx               context.Context        `json:"-"`
+	llmClient         *genai.Client          `json:"-"`
+	llmModel          *genai.GenerativeModel `json:"-"`
+	ttsClient         *tts.Client            `json:"-"`
+	EventPlan         []string               `json:"event_plan"`
+	EventLongHistory  []string               `json:"event_long_history"`
+	EventShortHistory []string               `json:"event_short_history"`
+	ChatHistory       []ChatMessage          `json:"chat_history"`
+	CharacterData     map[string][]string    `json:"character_data"`
+	PlaceData         map[string][]string    `json:"place_data"`
+	GroupData         map[string][]string    `json:"group_data"`
 }
 
 type (
@@ -70,6 +71,13 @@ type (
 		CharacterData     map[string][]string `json:"character_data"`
 		PlaceData         map[string][]string `json:"place_data"`
 		GroupData         map[string][]string `json:"group_data"`
+		RecentChatHistory []ChatMessage       `json:"recent_chat_history"`
+	}
+
+	ChatMessage struct {
+		Role     string `json:"role"`
+		PlayerID string `json:"player,omitempty"`
+		Message  string `json:"message"`
 	}
 )
 
@@ -85,7 +93,7 @@ func New(ctx context.Context) (*AI, error) {
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create gemini client"), err)
 	}
-	llmModel := llmClient.GenerativeModel("gemini-2.5-flash")
+	llmModel := llmClient.GenerativeModel("gemini-2.0-flash")
 	llmModel.ResponseMIMEType = "application/json"
 	llmModel.ResponseSchema = llmResponseGenaiSchema
 	llmModel.SystemInstruction = genai.NewUserContent(
@@ -100,10 +108,16 @@ func New(ctx context.Context) (*AI, error) {
 	}
 
 	return &AI{
-		ctx:       ctx,
-		llmClient: llmClient,
-		llmModel:  llmModel,
-		ttsClient: ttsClient,
+		ctx:               ctx,
+		llmClient:         llmClient,
+		llmModel:          llmModel,
+		ttsClient:         ttsClient,
+		EventPlan:         make([]string, 0),
+		EventLongHistory:  make([]string, 0),
+		EventShortHistory: make([]string, 0),
+		CharacterData:     make(map[string][]string),
+		PlaceData:         make(map[string][]string),
+		GroupData:         make(map[string][]string),
 	}, nil
 }
 
@@ -112,8 +126,12 @@ func (llm *AI) Close() {
 	_ = llm.ttsClient.Close()
 }
 
+const maxRecentChatHistory = 10
+
 func (llm *AI) Data() genai.Text {
 	sb := strings.Builder{}
+	sb.WriteString("Aktuelle Daten: ")
+
 	data := PromptDataSchema{
 		EventPlan:         llm.EventPlan,
 		EventLongHistory:  llm.EventLongHistory,
@@ -122,27 +140,52 @@ func (llm *AI) Data() genai.Text {
 		PlaceData:         llm.PlaceData,
 		GroupData:         llm.GroupData,
 	}
+	if len(llm.ChatHistory) > maxRecentChatHistory {
+		data.RecentChatHistory = llm.ChatHistory[len(llm.ChatHistory)-maxRecentChatHistory:]
+	} else {
+		data.RecentChatHistory = llm.ChatHistory
+	}
 	je := json.NewEncoder(&sb)
 	je.Encode(data)
+
+	sb.WriteString("\n\nFühre die Geschichte fort.")
 
 	return genai.Text(sb.String())
 }
 
 func (llm *AI) Start(scenario string) ResponseSchema {
-	llm.EventPlan = append(llm.EventPlan, scenario)
-	return llm.Text(fmt.Sprintf(startPromptTxt, scenario))
+	fmt.Println("Starting scenario:", scenario)
+	return llm.Text(genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
 }
 
-func (llm *AI) Text(text string) ResponseSchema {
-	respIter := llm.llmModel.GenerateContentStream(llm.ctx, genai.Text(text))
-	restReader := NewGenAIResponseReader(respIter)
-	jd := json.NewDecoder(restReader)
-	resp := ResponseSchema{}
-	jd.Decode(&resp)
+func (llm *AI) Continue(text string) ResponseSchema {
+	fmt.Println("Continuing:", text)
+	return llm.Text(llm.Data(), genai.Text(text))
+}
 
-	llm.applyResponse(resp)
+func (llm *AI) Text(parts ...genai.Part) ResponseSchema {
+	resp, err := llm.llmModel.GenerateContent(llm.ctx, parts...)
+	if err != nil {
+		fmt.Println("Error generating content:", err)
+		return ResponseSchema{}
+	}
 
-	return resp
+	sb := strings.Builder{}
+	for _, candidate := range resp.Candidates {
+		for _, part := range candidate.Content.Parts {
+			if textPart, ok := part.(genai.Text); ok {
+				sb.WriteString(string(textPart))
+			}
+		}
+	}
+
+	jd := json.NewDecoder(strings.NewReader(sb.String()))
+	respData := ResponseSchema{}
+	jd.Decode(&respData)
+
+	llm.applyResponse(respData)
+
+	return respData
 }
 
 func appendTime(s string) string {
@@ -215,15 +258,6 @@ func (llm *AI) applyResponse(resp ResponseSchema) {
 	}
 }
 
-func (resp ResponseSchema) JSON() string {
-	sb := strings.Builder{}
-	jd := json.NewEncoder(&sb)
-	jd.SetIndent("", "  ")
-	jd.Encode(resp)
-
-	return sb.String()
-}
-
 func (ai *AI) TTS(text string) (string, error) {
 	req := texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
@@ -246,4 +280,15 @@ func (ai *AI) TTS(text string) (string, error) {
 		return "", errors.Join(errors.New("failed to synthesize speech"), err)
 	}
 	return saveMp3(resp.GetAudioContent())
+}
+
+func (rs *ResponseSchema) JSON() string {
+	sb := strings.Builder{}
+	je := json.NewEncoder(&sb)
+	je.SetIndent("", "  ")
+	err := je.Encode(rs)
+	if err != nil {
+		return err.Error()
+	}
+	return sb.String()
 }

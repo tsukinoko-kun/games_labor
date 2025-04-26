@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useGameState, useWebSocket } from "./hooks.ts";
-import { type GameData, GameState } from "./types.ts";
-import { myUserId } from "./util.ts";
 import { setPlayerCharacterDescription, startGame } from "./api.ts";
+import { useGameState, useWebSocket } from "./hooks.ts";
+import { chatMessageId, type GameData, GameState } from "./types.ts";
+import { myUserId, stringToColor } from "./util.ts";
 
 const gameWsUri = new URL(location.href);
 gameWsUri.pathname = "/api/game_state";
@@ -20,7 +20,7 @@ interface Props {
   scenarios: { title: string; id: string; image: string }[];
 }
 
-interface InitProps extends Props {
+interface ExtProps extends Props {
   game: GameData;
 }
 
@@ -33,10 +33,43 @@ export function Game(props: Props) {
     case GameState.INIT:
       return <Init {...props} game={game} />;
     case GameState.RUNNING:
-      return <p>Running</p>;
+      return <RunningGame {...props} game={game} />;
     default:
       return <p>Unknown game state {JSON.stringify(game.state)}</p>;
   }
+}
+
+function RunningGame(props: ExtProps) {
+  return (
+    <div>
+      <ul>
+        {props.game.ai?.chat_history?.map((m) => {
+          if (m.role === "user") {
+            return (
+              <li
+                key={chatMessageId(m)}
+                style={{ color: stringToColor(m.player) }}
+              >
+                {m.message}
+              </li>
+            );
+          } else {
+            return (
+              <li key={chatMessageId(m)} className="text-blue-500">
+                {m.message}
+              </li>
+            );
+          }
+        })}
+      </ul>
+      <div className="grid grid-cols-2 gap-4">
+        <input type="text" placeholder="Type your message..." />
+        <button type="submit" className="btn">
+          Senden
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function InitScenarioButton(props: {
@@ -91,7 +124,7 @@ function lengthToText(length: number): string {
   }
 }
 
-function Init(props: InitProps) {
+function Init(props: ExtProps) {
   const ws = useWebSocket(gameWsUriString);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [violenceLevel, setViolenceLevel] = useState<number>(1);
