@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"gameslabor/internal/games"
-	"log"
 	"net/http"
 	"strings"
 
@@ -22,33 +20,6 @@ func newGame(w http.ResponseWriter, r *http.Request) {
 	game := games.New()
 	id := game.ID
 	http.Redirect(w, r, "/game?id="+id, http.StatusSeeOther)
-}
-
-func gameState(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-
-	fmt.Printf("gameState called with id: %s\n", id)
-
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Printf("websocket upgrade error: %v\n", err)
-		return
-	}
-	defer c.Close()
-
-	for {
-		_, message, err := c.ReadMessage()
-		if err != nil {
-			log.Println("ws read:", err)
-			break
-		}
-		log.Printf("recv: %s", message)
-		err = c.WriteMessage(websocket.TextMessage, message) // echo back message
-		if err != nil {
-			log.Println("write:", err)
-			break
-		}
-	}
 }
 
 func init() {

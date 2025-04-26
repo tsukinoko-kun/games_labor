@@ -8,10 +8,32 @@ import (
 	"gameslabor/internal/server/public"
 )
 
+type (
+	gameIslandProps struct {
+		Scenarios []gameIslandPropsScenario `json:"scenarios"`
+	}
+	gameIslandPropsScenario struct {
+		Title string `json:"title"`
+		Id    string `json:"id"`
+		Image string `json:"image"`
+	}
+)
+
 templ game() {
 	@layout("Games Labor") {
-		if game, ok := games.Games[ctx.Value("id").(string)]; ok {
-			@islands.Island("Game", game)
+		if g, ok := games.Games[ctx.Value("id").(string)]; ok {
+			{{ g.AddPlayer(ctx.Value(context.UserID).(string)) }}
+			@islands.Island("Game", gameIslandProps{
+				Scenarios: []gameIslandPropsScenario{
+					{Title: "Sci-Fi", Id: "scifi", Image: public.Path("scifi.webp")},
+					{Title: "Schatzsucher", Id: "treasure_hunt", Image: public.Path("treasure_hunt.webp")},
+					{Title: "Piraten", Id: "pirates", Image: public.Path("pirates.webp")},
+					{Title: "Fantasy", Id: "fantasy", Image: public.Path("fantasy.webp")},
+					{Title: "Vikinger", Id: "vikings", Image: public.Path("vikings.webp")},
+					{Title: "Western", Id: "western", Image: public.Path("western.webp")},
+					{Title: "Post-Apokalypse", Id: "post-apocalyptic", Image: public.Path("post-apocalyptic.webp")},
+				},
+			})
 		} else {
 			<p class="text-lg font-semibold">{ fmt.Sprintf("Game %q not found", ctx.Value(context.UserID).(string)) }</p>
 		}

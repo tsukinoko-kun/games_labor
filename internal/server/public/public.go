@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	//go:embed *.min.css *.svg js/*.js
+	//go:embed *.min.css *.svg js/*.js *.webp
 	public                 embed.FS
 	servedPathToNormalPath map[string]string
 	normalPathToServedPath map[string]string
@@ -93,6 +93,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	switch ext := unixpath.Ext(name); ext {
 	case ".css":
 		w.Header().Set("Content-Type", "text/css")
+	case ".js":
+		w.Header().Set("Content-Type", "application/javascript")
 	case ".svg":
 		w.Header().Set("Content-Type", "image/svg+xml")
 	case ".webp":

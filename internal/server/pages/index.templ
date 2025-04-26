@@ -7,7 +7,7 @@ templ index() {
 		<p class="text-2xl font-bold">Welcome to Games Labor!</p>
 		<ul>
 			for id, _ := range games.Games {
-				<li>{ id }</li>
+				<li><a href={ templ.URL("/game?id=" + id) }>{ id }</a></li>
 			}
 		</ul>
 		<a href="/api/new_game">Create New Game</a>

@@ -18,7 +18,7 @@ type Context struct {
 	PathVariables map[string]string
 }
 
-func From(w http.ResponseWriter, r *http.Request) context.Context {
+func From(w http.ResponseWriter, r *http.Request) *Context {
 	ctx := &Context{
 		base: r.Context(),
 	}
@@ -39,7 +39,7 @@ func getIdFromCookie(ctx *Context, r *http.Request, w http.ResponseWriter) {
 			Value:    newUUID,
 			Path:     "/",
 			Expires:  time.Now().Add(30 * 24 * time.Hour),
-			HttpOnly: true,
+			HttpOnly: false,
 		}
 		ctx.UserID = newUUID
 	} else {

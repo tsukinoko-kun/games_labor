@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+input[type="range"]::-webkit-slider-runnable-track {
+    background-color: var(--color-stone-800);
+    border-radius: 8px;
+}
+
+.btn {
+    @apply cursor-pointer bg-stone-500 hover:bg-stone-400 text-stone-950 font-semibold px-4 py-2 rounded-md mt-4 disabled:cursor-not-allowed disabled:bg-stone-600;
+}

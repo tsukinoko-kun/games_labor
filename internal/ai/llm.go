@@ -85,7 +85,7 @@ func New(ctx context.Context) (*AI, error) {
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create gemini client"), err)
 	}
-	llmModel := llmClient.GenerativeModel("gemini-2.0-flash")
+	llmModel := llmClient.GenerativeModel("gemini-2.5-flash")
 	llmModel.ResponseMIMEType = "application/json"
 	llmModel.ResponseSchema = llmResponseGenaiSchema
 	llmModel.SystemInstruction = genai.NewUserContent(
