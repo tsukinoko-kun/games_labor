@@ -7,6 +7,7 @@ Der Spieler wünscht sich folgendes Szenario:
 %s
 
 Spielstil & Führung
+- Spieler sind zu begin keine wichtigen Charaktere für die Welt, sie können sich aber durch ihr Handeln einen Namen machen
 - Spieler-Entscheidungen haben spürbare Folgen
 - Ausgewogenheit von Kampf, Rätseln und Social-Interaction
 - Erfahrungsgewinn durch Erkundung, Diplomatie und Kämpfe

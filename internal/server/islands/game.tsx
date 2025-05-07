@@ -176,7 +176,12 @@ function Init(props: ExtProps) {
 
   const playersList = Object.values(props.game.players);
   const playersWithoutDescription = playersList.filter(
-    (p) => !p.description,
+    (p) =>
+      !p.description ||
+      !p.description.name ||
+      !p.description.age ||
+      !p.description.appearance ||
+      !p.description.origin,
   ).length;
 
   return (
