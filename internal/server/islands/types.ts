@@ -36,9 +36,7 @@ export type AI = {
   event_long_history: string[];
   event_short_history: string[];
   chat_history: ChatMessage[];
-  character_data: Record<string, string[]>;
-  place_data: Record<string, string[]>;
-  group_data: Record<string, string[]>;
+  entity_data: Record<string, string[]>;
 };
 
 export type ChatMessage =

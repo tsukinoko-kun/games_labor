@@ -18,7 +18,7 @@ type AI struct {
 	EventLongHistory  []string            `json:"event_long_history"`
 	EventShortHistory []string            `json:"event_short_history"`
 	ChatHistory       []ChatMessage       `json:"chat_history"`
-	EntityData        map[string][]string `json:"character_data"`
+	EntityData        map[string][]string `json:"entity_data"`
 }
 
 func New(ctx context.Context) (*AI, error) {

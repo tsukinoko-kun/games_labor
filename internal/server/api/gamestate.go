@@ -86,7 +86,7 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 				log.Println("ws read:", err)
 				break
 			}
-			go game.Start(ctx.UserID, startAction.Scenario, startAction.ViolenceLevel, startAction.Duration)
+			go game.Start(startAction.Scenario, startAction.ViolenceLevel, startAction.Duration)
 		}
 	}
 }

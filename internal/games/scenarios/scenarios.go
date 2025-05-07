@@ -12,3 +12,54 @@ func FromID(id string) (string, error) {
 	}
 	return string(data), nil
 }
+
+type (
+	violenceLevel uint8
+	duration      uint8
+)
+
+func ViolenceLevel(i uint8) violenceLevel {
+	if i < 0 {
+		i = 0
+	} else if i > 3 {
+		i = 3
+	}
+	return violenceLevel(i)
+}
+
+func (vl violenceLevel) String() string {
+	switch vl {
+	case 0:
+		return "Gar nicht gewalttätig"
+	case 1:
+		return "Leicht gewalttätig"
+	case 2:
+		return "Gewalttätig und grausam"
+	case 3:
+		return "Übertrieben gewalttätig, grausam und unangenehm"
+	default:
+		return "Unbekannt"
+	}
+}
+
+func Duration(i uint8) duration {
+	if i < 0 {
+		i = 0
+	} else if i > 2 {
+		i = 2
+	}
+	return duration(i)
+}
+
+func (d duration) String() string {
+	switch d {
+	case 0:
+		return "Sehr kurz (30-60 Minuten)"
+	case 1:
+		return "Kurz (2-4 Stunden)"
+	case 2:
+		return "Lang (4-8 Stunden)"
+	default:
+		return "Unbekannt"
+	}
+}

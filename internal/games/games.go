@@ -53,6 +53,28 @@ func newWithId(id string) *Game {
 	return game
 }
 
+func runningWithId(id string) *Game {
+	p1 := uuid.NewString()
+	game := &Game{
+		ID:    id,
+		State: GameStateRunning,
+		Players: map[string]*Player{
+			p1: {
+				ID: p1,
+				Description: PlayerData{
+					Name:       "Geralt von Riva",
+					Age:        "69 Jahre",
+					Origin:     "Aufgewachsen im Hexer Bergfried Kaer Morhen. Nicht aus Riva.",
+					Appearance: "Lange aschblonde Haare, Katzenaugen, bleiche Haut.",
+				},
+			},
+		},
+		mut: sync.Mutex{},
+	}
+	Games[id] = game
+	return game
+}
+
 func (g *Game) AddPlayer(playerID string) {
 	g.mut.Lock()
 	defer g.mut.Unlock()
@@ -87,7 +109,7 @@ func (g *Game) PlayerInput(playerID string, input string) {
 	hub.Broadcast(g.ID, g)
 }
 
-func (g *Game) Start(playerID string, scenario string, violenceLevel uint8, duration uint8) {
+func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	g.mut.Lock()
 	defer g.mut.Unlock()
 
@@ -101,6 +123,10 @@ func (g *Game) Start(playerID string, scenario string, violenceLevel uint8, dura
 		log.Printf("failed to get scenario description: %v", err)
 		return
 	}
+
+	s += "\n\nZiel-Gewaltgrad: " + scenarios.ViolenceLevel(violenceLevel).String()
+	s += "\n\nZiel-Länge der gesammten Kampagne: " + scenarios.Duration(duration).String()
+
 	g.State = GameStateRunning
 	g.AI, err = ai.New(ctx)
 	if err != nil {

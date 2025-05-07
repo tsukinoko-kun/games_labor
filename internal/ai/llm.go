@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 	"google.golang.org/genai"
 )
 
-const model = "gemini-2.0-flash"
+const (
+	mainModel     = "gemini-2.0-flash"
+	thinkingModel = "gemini-2.5-pro-preview-05-06"
+)
 
 type (
 	EntityData struct {
@@ -65,12 +69,19 @@ var (
 	temperature      float32                      = 0.7
 	frequencyPenalty float32                      = 0.5
 	presencePenalty  float32                      = 0.5
-	config           *genai.GenerateContentConfig = &genai.GenerateContentConfig{
+	mainConfig       *genai.GenerateContentConfig = &genai.GenerateContentConfig{
 		TopP:             &topP,
 		TopK:             &topK,
 		Temperature:      &temperature,
 		FrequencyPenalty: &frequencyPenalty,
 		PresencePenalty:  &presencePenalty,
+		ResponseMIMEType: "application/json",
+		ResponseSchema:   llmResponseGenaiSchema,
+	}
+	thinkingConfig *genai.GenerateContentConfig = &genai.GenerateContentConfig{
+		TopP:             &topP,
+		TopK:             &topK,
+		Temperature:      &temperature,
 		ResponseMIMEType: "application/json",
 		ResponseSchema:   llmResponseGenaiSchema,
 	}
@@ -80,6 +91,7 @@ const maxRecentChatHistory = 10
 
 func (llm *AI) Data() []*genai.Content {
 	sb := strings.Builder{}
+	sb.WriteString("Aktuelle Spieldaten: ")
 
 	data := PromptDataSchema{
 		llm.EventPlan,
@@ -101,12 +113,12 @@ func (llm *AI) Data() []*genai.Content {
 
 func (llm *AI) Start(scenario string) ResponseSchema {
 	fmt.Println("Starting scenario:", scenario)
-	return llm.Text(systemInstructionContent, genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
+	return llm.Text(false, systemInstructionContent, llm.Data(), genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
 }
 
 func (llm *AI) Continue(text string) ResponseSchema {
 	fmt.Println("Continuing:", text)
-	return llm.Text(systemInstructionContent, llm.Data(), genai.Text(text))
+	return llm.Text(false, systemInstructionContent, llm.Data(), genai.Text(text))
 }
 
 func flatten[T any](slice [][]T) []T {
@@ -121,7 +133,16 @@ func flatten[T any](slice [][]T) []T {
 	return flattened
 }
 
-func (ai *AI) Text(parts ...[]*genai.Content) ResponseSchema {
+func (ai *AI) Text(thinking bool, parts ...[]*genai.Content) ResponseSchema {
+	var model string
+	var config *genai.GenerateContentConfig
+	if thinking {
+		model = thinkingModel
+		config = thinkingConfig
+	} else {
+		model = mainModel
+		config = mainConfig
+	}
 	resp, err := ai.llmClient.Models.GenerateContent(ai.ctx, model, flatten(parts), config)
 	if err != nil {
 		fmt.Println("Error generating content:", err)
@@ -152,6 +173,8 @@ func (llm *AI) applyResponse(resp ResponseSchema) {
 	if resp.EntityData != nil {
 		for i, entityData := range resp.EntityData {
 			if llm.EntityData == nil {
+				fmt.Sprintln("ai.EntityData should not be nil at this point")
+				os.Exit(1)
 				llm.EntityData = make(map[string][]string)
 			}
 			if i == 0 {

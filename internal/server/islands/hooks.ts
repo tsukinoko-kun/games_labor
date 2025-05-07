@@ -7,12 +7,19 @@ export function useWebSocket(url: string) {
   let ws = websockets.get(url);
   if (ws === undefined) {
     ws = new WebSocket(url);
-    ws.addEventListener("close", () => {
-      websockets.delete(url);
-    }, { capture: true, passive: true });
+    ws.addEventListener(
+      "close",
+      () => {
+        websockets.delete(url);
+      },
+      { capture: true, passive: true },
+    );
     websockets.set(url, ws);
   }
-  if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+  if (
+    ws.readyState === WebSocket.CLOSED ||
+    ws.readyState === WebSocket.CLOSING
+  ) {
     ws = new WebSocket(url);
     websockets.set(url, ws);
   }
@@ -34,12 +41,16 @@ export function useGameState(url: string) {
       setServerData(newData);
     };
 
-    ws.addEventListener("message", handleMessage, { capture: false, passive: true });
+    ws.addEventListener("message", handleMessage, {
+      capture: false,
+      passive: true,
+    });
 
     return () => {
       ws.removeEventListener("message", handleMessage);
     };
   }, [url, ws]);
 
+  (globalThis as any).serverData = serverData;
   return serverData;
 }
