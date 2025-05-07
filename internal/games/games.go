@@ -103,10 +103,13 @@ func (g *Game) PlayerInput(playerID string, input string) {
 		return
 	}
 
-	resp := g.AI.Continue(fmt.Sprintf(`Spieler %s sagt: %s`, playerID, input))
 	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input})
+	hub.Broadcast(g.ID, g)
+
+	resp := g.AI.Continue(fmt.Sprintf(`Führe die Geschichte nach dem Input von Spieler %s weiter.`, playerID))
 	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
 	hub.Broadcast(g.ID, g)
+
 	go g.addAllMissingAudio()
 }
 

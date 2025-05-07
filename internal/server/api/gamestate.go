@@ -27,6 +27,10 @@ type (
 		ViolenceLevel uint8  `json:"violence_level"`
 		Duration      uint8  `json:"duration"`
 	}
+
+	gameState_userInput struct {
+		Input string `json:"input"`
+	}
 )
 
 func gameState(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +91,14 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			go game.Start(startAction.Scenario, startAction.ViolenceLevel, startAction.Duration)
+		case "user_input":
+			inputAction := gameState_userInput{}
+			jd := json.NewDecoder(bytes.NewReader(message))
+			if err := jd.Decode(&inputAction); err != nil {
+				log.Println("ws read:", err)
+				break
+			}
+			go game.PlayerInput(ctx.UserID, inputAction.Input)
 		}
 	}
 }

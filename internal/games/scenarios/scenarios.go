@@ -1,6 +1,9 @@
 package scenarios
 
-import "embed"
+import (
+	"embed"
+	"fmt"
+)
 
 //go:embed *.txt
 var fs embed.FS
@@ -20,8 +23,10 @@ type (
 
 func ViolenceLevel(i uint8) violenceLevel {
 	if i < 0 {
+		fmt.Printf("violence level %d < 0, setting to 0", i)
 		i = 0
 	} else if i > 3 {
+		fmt.Printf("violence level %d > 3, setting to 3", i)
 		i = 3
 	}
 	return violenceLevel(i)
@@ -44,8 +49,10 @@ func (vl violenceLevel) String() string {
 
 func Duration(i uint8) duration {
 	if i < 0 {
+		fmt.Printf("duration %d < 0, setting to 0", i)
 		i = 0
 	} else if i > 2 {
+		fmt.Printf("duration %d > 3, setting to 3", i)
 		i = 2
 	}
 	return duration(i)

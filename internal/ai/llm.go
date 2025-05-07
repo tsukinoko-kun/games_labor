@@ -16,7 +16,7 @@ import (
 
 const (
 	mainModel     = "gemini-2.0-flash"
-	thinkingModel = "gemini-2.5-pro-preview-05-06"
+	thinkingModel = "gemini-2.0-flash-thinking-exp"
 )
 
 type (
@@ -114,7 +114,7 @@ func (llm *AI) Data() []*genai.Content {
 
 func (llm *AI) Start(scenario string) ResponseSchema {
 	fmt.Println("Starting scenario:", scenario)
-	return llm.Text(false, systemInstructionContent, llm.Data(), genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
+	return llm.Text(true, systemInstructionContent, llm.Data(), genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
 }
 
 func (llm *AI) Continue(text string) ResponseSchema {

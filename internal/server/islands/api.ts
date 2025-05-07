@@ -42,8 +42,28 @@ export function startGame(
     JSON.stringify({
       action: "start",
       scenario: selectedScenario,
-      violenceLevel: violenceLevel,
+      violence_level: violenceLevel,
       duration: duration,
+    }),
+  );
+}
+
+export function userInput(ws: WebSocket, input: string) {
+  if (ws.readyState !== WebSocket.OPEN) {
+    error("can't send user input, WebSocket is not open");
+    return;
+  }
+
+  input = input.trim();
+
+  if (!input) {
+    return;
+  }
+
+  ws.send(
+    JSON.stringify({
+      action: "user_input",
+      input,
     }),
   );
 }

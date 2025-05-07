@@ -8,6 +8,8 @@ Der Spieler wünscht sich folgendes Szenario:
 
 Spielstil & Führung
 - Spieler sind zu begin keine wichtigen Charaktere für die Welt, sie können sich aber durch ihr Handeln einen Namen machen
+- Sprich den/die Spieler nicht mit "Sie" an
+- Denk dir etwas orginelles aus
 - Spieler-Entscheidungen haben spürbare Folgen
 - Ausgewogenheit von Kampf, Rätseln und Social-Interaction
 - Erfahrungsgewinn durch Erkundung, Diplomatie und Kämpfe

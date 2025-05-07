@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { setPlayerCharacterDescription, startGame } from "./api.ts";
+import { useEffect, useState } from "react";
+import { setPlayerCharacterDescription, startGame, userInput } from "./api.ts";
 import { useGameState, useWebSocket } from "./hooks.ts";
 import {
   chatMessageId,
@@ -8,15 +8,7 @@ import {
   GameState,
   PlayerData,
 } from "./types.ts";
-import {
-  myUserId,
-  seededRandomAppearance,
-  seededRandomCharacter,
-  seededRandomInt,
-  seededRandomName,
-  seededRandomOrigin,
-  stringToColor,
-} from "./util.ts";
+import { myUserId, seededRandomCharacter, stringToColor } from "./util.ts";
 
 const gameWsUri = new URL(location.href);
 gameWsUri.pathname = "/api/game_state";
@@ -54,19 +46,20 @@ export function Game(props: Props) {
 }
 
 function RunningGame(props: ExtProps) {
+  useEffect(() => {
+    const chatMessages = document.getElementsByClassName("chat-message");
+    chatMessages
+      .item(chatMessages.length - 1)
+      ?.scrollIntoView({ behavior: "smooth" });
+  });
   return (
-    <div>
-      <ul className="max-w-5xl mx-auto">
+    <>
+      <ul className="max-w-5xl mx-auto pb-64">
         {props.game.ai?.chat_history?.map((m) => (
           <li
             key={chatMessageId(m)}
-            className="block p-4 my-4 border border-stone-700 border-solid rounded-md"
+            className="chat-message block p-4 my-4 border border-stone-700 border-solid rounded-md"
           >
-            {m.audio ? (
-              <audio controls>
-                <source src={m.audio} type="audio/ogg" />
-              </audio>
-            ) : null}
             {m.role === "user" ? (
               <p style={{ color: stringToColor(m.player) }}>
                 {props.game.players[m.player]?.description?.name || m.player}
@@ -74,21 +67,52 @@ function RunningGame(props: ExtProps) {
             ) : (
               <p className="text-stone-50">Erzähler</p>
             )}
+            {m.audio ? (
+              <audio controls>
+                <source src={m.audio} type="audio/ogg" />
+              </audio>
+            ) : null}
             <p className="mt-4 text-stone-50">{m.message}</p>
           </li>
         ))}
       </ul>
-      <div className="flex flex-row justify-between fixed bottom-0 left-4 right-4 w-[calc(100dvw-8rem)] h-fit gap-4">
-        <input
-          type="text"
-          className="w-[calc(100dvw-8rem)] p-4 bg-stone-800 rounded-md border border-solid border-transparent focus:border-stone-400"
-          placeholder="Was tust du?"
-        />
-        <button type="submit" className="btn">
-          Senden
-        </button>
-      </div>
-    </div>
+      <RunningGameInput />
+    </>
+  );
+}
+
+function RunningGameInput() {
+  const [value, setValue] = useState("");
+  const ws = useWebSocket(gameWsUriString);
+  return (
+    <form
+      className="flex flex-row justify-between fixed bottom-0 left-4 right-4 w-[calc(100dvw-3rem)] h-fit gap-4"
+      onSubmit={(ev) => {
+        ev.preventDefault();
+        userInput(ws, value);
+        setValue("");
+      }}
+    >
+      <input
+        type="text"
+        className="w-[calc(100dvw-3rem)] p-4 bg-stone-800 rounded-md border border-solid border-transparent focus:border-stone-400"
+        placeholder="Was tust du?"
+        value={value}
+        onChange={(ev) => {
+          setValue(ev.target.value);
+        }}
+      />
+      <button
+        type="submit"
+        className="btn"
+        onClick={() => {
+          userInput(ws, value);
+          setValue("");
+        }}
+      >
+        Senden
+      </button>
+    </form>
   );
 }
 
