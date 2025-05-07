@@ -56,28 +56,34 @@ export function Game(props: Props) {
 function RunningGame(props: ExtProps) {
   return (
     <div>
-      <ul>
-        {props.game.ai?.chat_history?.map((m) => {
-          if (m.role === "user") {
-            return (
-              <li
-                key={chatMessageId(m)}
-                style={{ color: stringToColor(m.player) }}
-              >
-                {m.message}
-              </li>
-            );
-          } else {
-            return (
-              <li key={chatMessageId(m)} className="text-blue-500">
-                {m.message}
-              </li>
-            );
-          }
-        })}
+      <ul className="max-w-5xl mx-auto">
+        {props.game.ai?.chat_history?.map((m) => (
+          <li
+            key={chatMessageId(m)}
+            className="block p-4 my-4 border border-stone-700 border-solid rounded-md"
+          >
+            {m.audio ? (
+              <audio controls>
+                <source src={m.audio} type="audio/ogg" />
+              </audio>
+            ) : null}
+            {m.role === "user" ? (
+              <p style={{ color: stringToColor(m.player) }}>
+                {props.game.players[m.player]?.description?.name || m.player}
+              </p>
+            ) : (
+              <p className="text-stone-50">Erzähler</p>
+            )}
+            <p className="mt-4 text-stone-50">{m.message}</p>
+          </li>
+        ))}
       </ul>
-      <div className="grid grid-cols-2 gap-4">
-        <input type="text" placeholder="Type your message..." />
+      <div className="flex flex-row justify-between fixed bottom-0 left-4 right-4 w-[calc(100dvw-8rem)] h-fit gap-4">
+        <input
+          type="text"
+          className="w-[calc(100dvw-8rem)] p-4 bg-stone-800 rounded-md border border-solid border-transparent focus:border-stone-400"
+          placeholder="Was tust du?"
+        />
         <button type="submit" className="btn">
           Senden
         </button>
@@ -138,6 +144,12 @@ function lengthToText(length: number): string {
   }
 }
 
+const descriptionTranslations = new Map([
+  ["name", "Name"],
+  ["age", "Alter"],
+  ["origin", "Herkunft"],
+  ["appearance", "Aussehen"],
+]);
 function InitCharacter(props: {
   value: PlayerData;
   onChange: (newValue: PlayerData) => void;
@@ -148,7 +160,8 @@ function InitCharacter(props: {
         <label
           className={`block bg-stone-800 p-2 border border-solid rounded-md ${v ? "border-stone-700 has-focus:border-stone-400" : "border-orange-400"} ${i > 0 ? "mt-4" : ""}`}
         >
-          {k[0].toUpperCase() + k.substring(1)}
+          {descriptionTranslations.get(k) ??
+            k[0].toUpperCase() + k.substring(1)}
           <input
             className="block w-full"
             value={v}
@@ -188,7 +201,7 @@ function Init(props: ExtProps) {
     <div className="max-w-7xl px-4 justify-center w-fit mx-auto block my-8 pb-64">
       <p className="block text-xl font-bold mb-4">Charaktere</p>
       <p className="my-4 text-stone-500">Angemeldete Spieler</p>
-      <ul className="flex flex-row flex-wrap">
+      <ul className="flex flex-row flex-wrap gap-4 justify-between">
         {playersList.map((player, i) =>
           player.id === myUserId ? (
             <li
@@ -221,8 +234,17 @@ function Init(props: ExtProps) {
               className="w-md border border-stone-500 border-solid rounded-md"
             >
               <p>Character {i + 1}</p>
-              <p className="text-stone-500">Name</p>
-              <p>{player.description?.name || player.id}</p>
+              {player.description
+                ? Object.entries(player.description).map(([k, v], i) => (
+                    <p className="block mt-4">
+                      <span className="text-stone-500 mr-2">
+                        {descriptionTranslations.get(k) ??
+                          k[0].toUpperCase() + k.substring(1)}
+                      </span>
+                      <span>{v || "N/A"}</span>
+                    </p>
+                  ))
+                : player.id}
             </li>
           ),
         )}

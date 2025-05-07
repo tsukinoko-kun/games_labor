@@ -3,7 +3,9 @@ package ai
 import (
 	"net/http"
 	"os"
+	unixpath "path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/google/uuid"
@@ -31,5 +33,20 @@ func Cleanup() {
 
 func saveOgg(audio []byte) (string, error) {
 	filename := filepath.Join(tempDir, uuid.New().String()+".ogg")
-	return filename, os.WriteFile(filename, audio, 0644)
+	err := os.WriteFile(filename, audio, 0644)
+	if err != nil {
+		return "", err
+	}
+	return filenameToServePath(filename)
+}
+
+func filenameToServePath(name string) (string, error) {
+	p, err := filepath.Rel(tempDir, name)
+	if err != nil {
+		return p, err
+	}
+	if runtime.GOOS == "windows" {
+		p = strings.ReplaceAll(p, "\\", "/")
+	}
+	return unixpath.Join("/ai", p), nil
 }

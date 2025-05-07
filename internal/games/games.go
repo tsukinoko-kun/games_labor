@@ -107,6 +107,7 @@ func (g *Game) PlayerInput(playerID string, input string) {
 	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input})
 	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
 	hub.Broadcast(g.ID, g)
+	go g.addAllMissingAudio()
 }
 
 func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
@@ -143,6 +144,35 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
 	fmt.Printf("First message: %s\n", resp.JSON())
 	hub.Broadcast(g.ID, g)
+	go g.addAllMissingAudio()
+}
+
+func (g *Game) addAllMissingAudio() {
+	g.mut.Lock()
+	defer g.mut.Unlock()
+
+	fmt.Println("addAllMissingAudio")
+
+	doneSomething := false
+
+	for i, m := range g.AI.ChatHistory {
+		if len(m.Audio) > 0 || m.Role != "model" {
+			continue
+		}
+		fmt.Println("addAllMissingAudio", m.Message[:16], "...")
+		if audio, err := g.AI.TTS(m.Message); err != nil {
+			fmt.Println("error during tts:", err.Error())
+			continue
+		} else {
+			// m is not a reference
+			g.AI.ChatHistory[i].Audio = audio
+			doneSomething = true
+			fmt.Println("DONE: addAllMissingAudio", m.Message[:16], "...")
+		}
+	}
+	if doneSomething {
+		hub.Broadcast(g.ID, g)
+	}
 }
 
 func init() {

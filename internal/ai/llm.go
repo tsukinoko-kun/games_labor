@@ -52,6 +52,7 @@ type (
 		Role     string `json:"role"`
 		PlayerID string `json:"player,omitempty"`
 		Message  string `json:"message"`
+		Audio    string `json:"audio"`
 	}
 )
 
@@ -224,8 +225,8 @@ func (ai *AI) TTS(text string) (string, error) {
 		},
 		AudioConfig: &texttospeechpb.AudioConfig{
 			AudioEncoding: texttospeechpb.AudioEncoding_OGG_OPUS,
-			Pitch:         -2.,
-			SpeakingRate:  .9,
+			Pitch:         -7.5,
+			SpeakingRate:  1,
 		},
 	}
 

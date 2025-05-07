@@ -43,11 +43,13 @@ export type ChatMessage =
   | {
       role: "model";
       message: string;
+      audio: string | null;
     }
   | {
       role: "user";
       player: string;
       message: string;
+      audio: string | null;
     };
 
 function hashStr(str: string) {
