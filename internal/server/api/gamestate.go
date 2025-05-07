@@ -18,8 +18,8 @@ type (
 		Action string `json:"action"`
 	}
 
-	gameState_singleValueAction struct {
-		Value string `json:"value"`
+	gameState_setPlayerCharacterDescription struct {
+		Player games.PlayerData `json:"player"`
 	}
 
 	gameState_startAction struct {
@@ -72,13 +72,13 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 
 		switch action.Action {
 		case "set_player_character_description":
-			descriptionAction := gameState_singleValueAction{}
+			descriptionAction := gameState_setPlayerCharacterDescription{}
 			jd := json.NewDecoder(bytes.NewReader(message))
 			if err := jd.Decode(&descriptionAction); err != nil {
 				log.Println("ws read:", err)
 				break
 			}
-			go game.SetPlayerDescription(ctx.UserID, descriptionAction.Value)
+			go game.SetPlayerDescription(games.Player{ID: ctx.UserID, Description: descriptionAction.Player})
 		case "start":
 			startAction := gameState_startAction{}
 			jd := json.NewDecoder(bytes.NewReader(message))

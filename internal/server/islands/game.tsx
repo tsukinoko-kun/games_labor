@@ -1,8 +1,22 @@
 import { useState } from "react";
 import { setPlayerCharacterDescription, startGame } from "./api.ts";
 import { useGameState, useWebSocket } from "./hooks.ts";
-import { chatMessageId, type GameData, GameState } from "./types.ts";
-import { myUserId, stringToColor } from "./util.ts";
+import {
+  chatMessageId,
+  descriptionEquals,
+  type GameData,
+  GameState,
+  PlayerData,
+} from "./types.ts";
+import {
+  myUserId,
+  seededRandomAppearance,
+  seededRandomCharacter,
+  seededRandomInt,
+  seededRandomName,
+  seededRandomOrigin,
+  stringToColor,
+} from "./util.ts";
 
 const gameWsUri = new URL(location.href);
 gameWsUri.pathname = "/api/game_state";
@@ -124,13 +138,40 @@ function lengthToText(length: number): string {
   }
 }
 
+function InitCharacter(props: {
+  value: PlayerData;
+  onChange: (newValue: PlayerData) => void;
+}) {
+  return (
+    <div className="block">
+      {Object.entries(props.value).map(([k, v], i) => (
+        <label
+          className={`block bg-stone-800 p-2 border border-solid rounded-md ${v ? "border-stone-700 has-focus:border-stone-400" : "border-orange-400"} ${i > 0 ? "mt-4" : ""}`}
+        >
+          {k[0].toUpperCase() + k.substring(1)}
+          <input
+            className="block w-full"
+            value={v}
+            onChange={(ev) =>
+              props.onChange({
+                ...props.value,
+                [k]: ev.target.value,
+              })
+            }
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function Init(props: ExtProps) {
   const ws = useWebSocket(gameWsUriString);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [violenceLevel, setViolenceLevel] = useState<number>(1);
   const [length, setLength] = useState<number>(1);
-  const [playerDescription, setPlayerDescription] = useState<string>(
-    props.game.players[myUserId]?.description ?? "",
+  const [playerDescription, setPlayerDescription] = useState<PlayerData>(
+    props.game.players[myUserId]?.description ?? seededRandomCharacter(),
   );
 
   const playersList = Object.values(props.game.players);
@@ -152,17 +193,16 @@ function Init(props: ExtProps) {
               <p>Charakter {i + 1} (Du)</p>
               <label className="block w-full">
                 <p className="text-stone-500">Beschreibung</p>
-                <textarea
-                  className={`block resize-none h-96 w-full max-w-80 bg-stone-800 focus:outline-stone-500 focus:outline-solid focus:outline rounded-md px-4 py-2 ${!playerDescription ? "outline-orange-400 outline outline-solid" : ""}`}
+                <InitCharacter
                   value={playerDescription}
-                  onChange={(e) => {
-                    setPlayerDescription(e.target.value);
+                  onChange={(x) => {
+                    setPlayerDescription(x);
                   }}
                 />
               </label>
               <button
                 type="submit"
-                className={`btn ${playerDescription !== player.description ? "outline-2 outline-solid outline-orange-400" : ""}`}
+                className={`btn ${!descriptionEquals(playerDescription, player.description) ? "outline-2 outline-solid outline-orange-400" : ""}`}
                 onClick={() => {
                   setPlayerCharacterDescription(ws, playerDescription);
                 }}
@@ -177,7 +217,7 @@ function Init(props: ExtProps) {
             >
               <p>Character {i + 1}</p>
               <p className="text-stone-500">Name</p>
-              <p>{player.description || player.id}</p>
+              <p>{player.description?.name || player.id}</p>
             </li>
           ),
         )}

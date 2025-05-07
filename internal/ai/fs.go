@@ -29,7 +29,7 @@ func Cleanup() {
 	_ = os.RemoveAll(tempDir)
 }
 
-func saveMp3(audio []byte) (string, error) {
-	filename := filepath.Join(tempDir, uuid.New().String()+".mp3")
+func saveOgg(audio []byte) (string, error) {
+	filename := filepath.Join(tempDir, uuid.New().String()+".ogg")
 	return filename, os.WriteFile(filename, audio, 0644)
 }

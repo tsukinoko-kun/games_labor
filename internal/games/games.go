@@ -23,9 +23,16 @@ type (
 
 	GameState uint8
 
+	PlayerData struct {
+		Name       string `json:"name"`
+		Age        string `json:"age"`
+		Origin     string `json:"origin"`
+		Appearance string `json:"appearance"`
+	}
+
 	Player struct {
-		ID          string `json:"id"`
-		Description string `json:"description"`
+		ID          string     `json:"id"`
+		Description PlayerData `json:"description"`
 	}
 )
 
@@ -56,12 +63,12 @@ func (g *Game) AddPlayer(playerID string) {
 	g.Players[playerID] = &Player{ID: playerID}
 }
 
-func (g *Game) SetPlayerDescription(playerID string, description string) {
+func (g *Game) SetPlayerDescription(p Player) {
 	g.mut.Lock()
 	defer g.mut.Unlock()
 
-	if player, ok := g.Players[playerID]; ok {
-		player.Description = description
+	if player, ok := g.Players[p.ID]; ok {
+		*player = p
 		hub.Broadcast(g.ID, g)
 	}
 }
@@ -102,7 +109,7 @@ func (g *Game) Start(playerID string, scenario string, violenceLevel uint8, dura
 	}
 
 	for _, player := range g.Players {
-		g.AI.CharacterData[player.ID] = []string{player.Description}
+		g.AI.EntityData["player_"+player.ID] = player.Description.Slice()
 	}
 	hub.Broadcast(g.ID, g)
 
@@ -121,3 +128,12 @@ const (
 	GameStateInit GameState = iota
 	GameStateRunning
 )
+
+func (pd PlayerData) Slice() []string {
+	return []string{
+		"name: " + pd.Name,
+		"alter: " + pd.Age,
+		"aussehen: " + pd.Appearance,
+		"herkunft: " + pd.Origin,
+	}
+}

@@ -5,10 +5,26 @@ export type GameData = {
   ai: AI;
 };
 
+export type PlayerData = {
+  name: string;
+  age: string;
+  origin: string;
+  appearance: string;
+};
+
 export type Player = {
   id: string;
-  description: string;
+  description: PlayerData;
 };
+
+export function descriptionEquals(a: PlayerData, b: PlayerData) {
+  for (const key in a) {
+    if (a[key as keyof PlayerData] !== b[key as keyof PlayerData]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export const GameState = {
   INIT: 0,
@@ -27,14 +43,14 @@ export type AI = {
 
 export type ChatMessage =
   | {
-    role: "model";
-    message: string;
-  }
+      role: "model";
+      message: string;
+    }
   | {
-    role: "user";
-    player: string;
-    message: string;
-  };
+      role: "user";
+      player: string;
+      message: string;
+    };
 
 function hashStr(str: string) {
   let hash = 5381;

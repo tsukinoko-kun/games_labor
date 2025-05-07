@@ -1,8 +1,6 @@
-Hier startet das Spiel. Entwirf einen Start und führe den Spieler in die Geschichte ein. Gib dem Spieler subtil an, was hier passieren soll, um es ihm einfach zu machen, in die Geschichte zu starten. Hier sind `event_plan`, `event_short_history`, `event_long_history`, und `character_data`, `place_data`, und `group_data`, besonders wichtig.
+Hier startet das Spiel. Entwirf einen Start und führe den Spieler in die Geschichte ein. Gib dem Spieler subtil an, was hier passieren soll, um es ihm einfach zu machen, in die Geschichte zu starten. Hier sind `event_plan`, `event_short_history`, `event_long_history`, und `entity_data` besonders wichtig. Fange direkt damit an hier einige Informationen abzuspeichern. Plane jetzt den groben Ablauf der Geschichte. Lege fest in welche grobe Richtung die Geschichte gehen soll. Erschaffe Charaktere, Orte und Gruppen, die für diese Geschichte relevant sind.
 
-Fange direkt damit an einige Informationen in `event_plan`, `event_short_history`, `event_long_history`, `character_data`, `place_data`, und `group_data` abzuspeichern. Plane jetzt den groben Ablauf der Geschichte. Lege fest in welche grobe Richtung die Geschichte gehen soll. Erschaffe Charaktere, Orte und Gruppen, die für diese Geschichte relevant sind.
-
-Fülle vor allem den `event_plan` jetzt mit vielen Informationen und mache dir damit einen groben Plan, was im Verlauf der Geschichte passieren soll.
+Fülle vor allem den `event_plan` jetzt mit vielen Informationen und mache dir damit einen groben Plan, was im gesamten Verlauf der Geschichte passieren soll.
 
 Der Spieler wünscht sich folgendes Szenario:
 
