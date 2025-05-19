@@ -1,21 +1,18 @@
-export type GameData = {
-  id: string;
-  players: Record<string, Player>;
-  state: (typeof GameState)[keyof typeof GameState];
-  ai: AI;
-};
+import { z } from "zod";
 
-export type PlayerData = {
-  name: string;
-  age: string;
-  origin: string;
-  appearance: string;
-};
+export const PlayerDataShema = z.object({
+  name: z.string(),
+  age: z.string(),
+  origin: z.string(),
+  appearance: z.string(),
+});
+export type PlayerData = z.infer<typeof PlayerDataShema>;
 
-export type Player = {
-  id: string;
-  description: PlayerData;
-};
+export const PlayerShema = z.object({
+  id: z.string(),
+  description: PlayerDataShema,
+});
+export type Player = z.infer<typeof PlayerShema>;
 
 export function descriptionEquals(a: PlayerData, b: PlayerData) {
   for (const key in a) {
@@ -25,32 +22,41 @@ export function descriptionEquals(a: PlayerData, b: PlayerData) {
   }
   return true;
 }
+export const ChatMessageShema = z.discriminatedUnion("role", [
+  z.object({
+    role: z.literal("model"),
+    message: z.string(),
+    audio: z.string().nullable(),
+  }),
+  z.object({
+    role: z.literal("user"),
+    player: z.string(),
+    message: z.string(),
+    audio: z.string().nullable(),
+  }),
+]);
+export type ChatMessage = z.infer<typeof ChatMessageShema>;
 
-export const GameState = {
-  INIT: 0,
-  RUNNING: 1,
-} as const;
+export const AIShema = z.object({
+  event_plan: z.array(z.string()),
+  event_long_history: z.array(z.string()),
+  event_short_history: z.array(z.string()),
+  chat_history: z.array(ChatMessageShema),
+  entity_data: z.record(z.array(z.string())),
+});
+export type AI = z.infer<typeof AIShema>;
 
-export type AI = {
-  event_plan: string[];
-  event_long_history: string[];
-  event_short_history: string[];
-  chat_history: ChatMessage[];
-  entity_data: Record<string, string[]>;
-};
+export const GameState = { INIT: 0, RUNNING: 1 } as const;
+export const GameStateShema = z.nativeEnum(GameState);
+export type GameState = z.infer<typeof GameStateShema>;
 
-export type ChatMessage =
-  | {
-      role: "model";
-      message: string;
-      audio: string | null;
-    }
-  | {
-      role: "user";
-      player: string;
-      message: string;
-      audio: string | null;
-    };
+export const GameDataShema = z.object({
+  id: z.string(),
+  players: z.record(PlayerShema),
+  state: GameStateShema,
+  ai: AIShema,
+});
+export type GameData = z.infer<typeof GameDataShema>;
 
 function hashStr(str: string) {
   let hash = 5381;

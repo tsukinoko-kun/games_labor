@@ -21,6 +21,22 @@ type AI struct {
 	EntityData        map[string][]string `json:"entity_data"`
 }
 
+var (
+	emptyStrSlice    = make([]string, 0)
+	emptyChatHistory = make([]ChatMessage, 0)
+	emptyEntityData  = make(map[string][]string)
+)
+
+func Empty() *AI {
+	return &AI{
+		EventPlan:         emptyStrSlice,
+		EventLongHistory:  emptyStrSlice,
+		EventShortHistory: emptyStrSlice,
+		ChatHistory:       emptyChatHistory,
+		EntityData:        emptyEntityData,
+	}
+}
+
 func New(ctx context.Context) (*AI, error) {
 	llmClient, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  env.GOOGLE_API_KEY,
@@ -41,6 +57,7 @@ func New(ctx context.Context) (*AI, error) {
 		EventPlan:         make([]string, 0),
 		EventLongHistory:  make([]string, 0),
 		EventShortHistory: make([]string, 0),
+		ChatHistory:       make([]ChatMessage, 0),
 		EntityData:        make(map[string][]string),
 	}, nil
 }

@@ -104,5 +104,5 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 }
 
 func gameState_sendFullState(c *websocket.Conn, game *games.Game) error {
-	return c.WriteJSON(game)
+	return c.WriteJSON(games.WsFullOverwrite{Method: "full_overwrite", Value: game})
 }

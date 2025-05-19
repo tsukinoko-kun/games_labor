@@ -36,6 +36,18 @@ type (
 	}
 )
 
+type (
+	WsFullOverwrite struct {
+		Method string `json:"method"`
+		Value  *Game  `json:"value"`
+	}
+	WsSetOrPush struct {
+		Method string `json:"method"`
+		Path   string `json:"path"`
+		Value  any    `json:"value"`
+	}
+)
+
 var Games = make(map[string]*Game)
 
 func New() *Game {
@@ -45,31 +57,10 @@ func New() *Game {
 func newWithId(id string) *Game {
 	game := &Game{
 		ID:      id,
+		AI:      ai.Empty(),
 		State:   GameStateInit,
 		Players: make(map[string]*Player),
 		mut:     sync.Mutex{},
-	}
-	Games[id] = game
-	return game
-}
-
-func runningWithId(id string) *Game {
-	p1 := uuid.NewString()
-	game := &Game{
-		ID:    id,
-		State: GameStateRunning,
-		Players: map[string]*Player{
-			p1: {
-				ID: p1,
-				Description: PlayerData{
-					Name:       "Geralt von Riva",
-					Age:        "69 Jahre",
-					Origin:     "Aufgewachsen im Hexer Bergfried Kaer Morhen. Nicht aus Riva.",
-					Appearance: "Lange aschblonde Haare, Katzenaugen, bleiche Haut.",
-				},
-			},
-		},
-		mut: sync.Mutex{},
 	}
 	Games[id] = game
 	return game
@@ -91,7 +82,7 @@ func (g *Game) SetPlayerDescription(p Player) {
 
 	if player, ok := g.Players[p.ID]; ok {
 		*player = p
-		hub.Broadcast(g.ID, g)
+		hub.Broadcast(g.ID, WsSetOrPush{"set", "players." + p.ID, p})
 	}
 }
 
@@ -103,12 +94,18 @@ func (g *Game) PlayerInput(playerID string, input string) {
 		return
 	}
 
-	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input})
-	hub.Broadcast(g.ID, g)
+	{
+		newChatMessage := ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input}
+		g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
+		hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+	}
 
-	resp := g.AI.Continue(fmt.Sprintf(`Führe die Geschichte nach dem Input von Spieler %s weiter.`, playerID))
-	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
-	hub.Broadcast(g.ID, g)
+	{
+		resp := g.AI.Continue(fmt.Sprintf(`Führe die Geschichte nach dem Input von Spieler %s weiter.`, playerID))
+		newChatMessage := ai.ChatMessage{Role: "model", Message: resp.NarratorText}
+		g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
+		hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+	}
 
 	go g.addAllMissingAudio()
 }
@@ -141,12 +138,14 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	for _, player := range g.Players {
 		g.AI.EntityData["player_"+player.ID] = player.Description.Slice()
 	}
-	hub.Broadcast(g.ID, g)
+	hub.Broadcast(g.ID, WsFullOverwrite{Method: "full_overwrite", Value: g})
 
 	resp := g.AI.Start(s)
-	g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: resp.NarratorText})
+	newChatMessage := ai.ChatMessage{Role: "model", Message: resp.NarratorText}
+	g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
 	fmt.Printf("First message: %s\n", resp.JSON())
-	hub.Broadcast(g.ID, g)
+	hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+
 	go g.addAllMissingAudio()
 }
 
@@ -154,27 +153,24 @@ func (g *Game) addAllMissingAudio() {
 	g.mut.Lock()
 	defer g.mut.Unlock()
 
-	fmt.Println("addAllMissingAudio")
-
-	doneSomething := false
-
 	for i, m := range g.AI.ChatHistory {
 		if len(m.Audio) > 0 || m.Role != "model" {
 			continue
 		}
-		fmt.Println("addAllMissingAudio", m.Message[:16], "...")
 		if audio, err := g.AI.TTS(m.Message); err != nil {
 			fmt.Println("error during tts:", err.Error())
 			continue
 		} else {
-			// m is not a reference
 			g.AI.ChatHistory[i].Audio = audio
-			doneSomething = true
-			fmt.Println("DONE: addAllMissingAudio", m.Message[:16], "...")
+			hub.Broadcast(
+				g.ID,
+				WsSetOrPush{
+					"set",
+					fmt.Sprintf("ai.chat_history.%d.audio", i),
+					audio,
+				},
+			)
 		}
-	}
-	if doneSomething {
-		hub.Broadcast(g.ID, g)
 	}
 }
 

@@ -1,3 +1,4 @@
+import { ZodIssue } from "zod";
 import type { PlayerData } from "./types";
 
 export const seed = Math.random();
@@ -104,4 +105,86 @@ export function stringToColor(str: string) {
   )
     .toString(16)
     .padStart(2, "0")}${scaleToMidRange(b).toString(16).padStart(2, "0")}`;
+}
+
+export function zodErr(err: ZodIssue): string {
+  switch (err.code) {
+    case "invalid_type":
+      return `invalid type ${err.received} for ${err.path.join(".")}, expected ${err.expected}.`;
+    case "invalid_literal":
+      return `invalid literal ${err.received} for ${err.path.join(".")}, expected ${err.expected}.`;
+    case "custom":
+      return `custom error ${err.message} at ${err.path.join(".")}.`;
+    case "invalid_union": {
+      const mainMsg = `invalid union at ${err.path.join(".")}`;
+      if (err.unionErrors && err.unionErrors.length > 0) {
+        return (
+          mainMsg +
+          "\n" +
+          err.unionErrors
+            .map((err) => err.issues.map(zodErr).join(". ") + ".")
+            .join("\n")
+        );
+      }
+      return mainMsg;
+    }
+    case "invalid_union_discriminator":
+      return `invalid union at ${err.path.join(".")}.`;
+    case "invalid_enum_value":
+      return `invalid enum value ${err.received} for ${err.path.join(".")}.`;
+    case "unrecognized_keys":
+      return `unrecognized keys ${err.keys.join(", ")} for ${err.path.join(".")}.`;
+    case "invalid_arguments": {
+      const mainMsg = `invalid arguments ${err.path.join(".")}`;
+      if (
+        err.argumentsError &&
+        err.argumentsError.errors &&
+        err.argumentsError.errors.length > 0
+      ) {
+        return (
+          mainMsg + "\n" + err.argumentsError.errors.map(zodErr).join("\n")
+        );
+      }
+      return mainMsg + ".";
+    }
+    case "invalid_return_type": {
+      const mainMsg = `invalid return type for ${err.path.join(".")}`;
+      if (
+        err.returnTypeError &&
+        err.returnTypeError.errors &&
+        err.returnTypeError.errors.length > 0
+      ) {
+        return (
+          mainMsg + "\n" + err.returnTypeError.errors.map(zodErr).join("\n")
+        );
+      }
+      return mainMsg + ".";
+    }
+    case "invalid_date":
+      return `invalid date at ${err.path.join(".")}.`;
+    case "invalid_string":
+      return `invalid string at ${err.path.join(".")}.`;
+    case "too_small": {
+      let msg = `value at ${err.path.join(".")} bust be `;
+      if (err.inclusive) msg += ` >= ${err.minimum}`;
+      else if (err.exact) msg += ` = ${err.minimum}`;
+      else msg += ` > ${err.minimum}`;
+      msg += ".";
+      return msg;
+    }
+    case "too_big": {
+      let msg = `value at ${err.path.join(".")} bust be `;
+      if (err.inclusive) msg += ` <= ${err.maximum}`;
+      else if (err.exact) msg += ` = ${err.maximum}`;
+      else msg += ` < ${err.maximum}`;
+      msg += ".";
+      return msg;
+    }
+    case "invalid_intersection_types":
+      `invalid intersection types at ${err.path.join(".")}.`;
+    case "not_multiple_of":
+      return `value at ${err.path.join(".")} is not multiple.`;
+    case "not_finite":
+      return `value at ${err.path.join(".")} is not finite.`;
+  }
 }

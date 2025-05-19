@@ -1,51 +1,43 @@
-import { useEffect, useState } from "react";
-import { setPlayerCharacterDescription, startGame, userInput } from "./api.ts";
-import { useGameState, useWebSocket } from "./hooks.ts";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import {
+  useGameData,
+  setPlayerCharacterDescription,
+  startGame,
+  userInput,
+} from "./gamestate.ts";
 import {
   chatMessageId,
   descriptionEquals,
-  type GameData,
   GameState,
-  PlayerData,
+  type PlayerData,
 } from "./types.ts";
 import { myUserId, seededRandomCharacter, stringToColor } from "./util.ts";
-
-const gameWsUri = new URL(location.href);
-gameWsUri.pathname = "/api/game_state";
-if (gameWsUri.protocol === "http:") {
-  gameWsUri.protocol = "ws:";
-} else if (gameWsUri.protocol === "https:") {
-  gameWsUri.protocol = "wss:";
-}
-if (gameWsUri.port === "4321") {
-  gameWsUri.port = "8080";
-}
-const gameWsUriString = gameWsUri.toString();
 
 interface Props {
   scenarios: { title: string; id: string; image: string }[];
 }
 
-interface ExtProps extends Props {
-  game: GameData;
-}
-
 export function Game(props: Props) {
-  const game = useGameState(gameWsUriString);
-  if (!game) {
-    return <p>Loading...</p>;
-  }
-  switch (game.state) {
+  const g = useGameData();
+  switch (g.state) {
     case GameState.INIT:
-      return <Init {...props} game={game} />;
+      return <Init {...props} />;
     case GameState.RUNNING:
-      return <RunningGame {...props} game={game} />;
-    default:
-      return <p>Unknown game state {JSON.stringify(game.state)}</p>;
+      return <RunningGame />;
   }
 }
 
-function RunningGame(props: ExtProps) {
+function RunningGame() {
+  return (
+    <>
+      <RunningGameChatHistory />
+      <RunningGameInput />
+    </>
+  );
+}
+
+function RunningGameChatHistory() {
+  const g = useGameData();
   useEffect(() => {
     const chatMessages = document.getElementsByClassName("chat-message");
     chatMessages
@@ -53,43 +45,39 @@ function RunningGame(props: ExtProps) {
       ?.scrollIntoView({ behavior: "smooth" });
   });
   return (
-    <>
-      <ul className="max-w-5xl mx-auto pb-64">
-        {props.game.ai?.chat_history?.map((m) => (
-          <li
-            key={chatMessageId(m)}
-            className="chat-message block p-4 my-4 border border-stone-700 border-solid rounded-md"
-          >
-            {m.role === "user" ? (
-              <p style={{ color: stringToColor(m.player) }}>
-                {props.game.players[m.player]?.description?.name || m.player}
-              </p>
-            ) : (
-              <p className="text-stone-50">Erzähler</p>
-            )}
-            {m.audio ? (
-              <audio controls>
-                <source src={m.audio} type="audio/ogg" />
-              </audio>
-            ) : null}
-            <p className="mt-4 text-stone-50">{m.message}</p>
-          </li>
-        ))}
-      </ul>
-      <RunningGameInput />
-    </>
+    <ul className="max-w-5xl mx-auto pb-64">
+      {g.ai.chat_history.map((m) => (
+        <li
+          key={chatMessageId(m)}
+          className="chat-message block p-4 my-4 border border-stone-700 border-solid rounded-md"
+        >
+          {m.role === "user" ? (
+            <p style={{ color: stringToColor(m.player) }}>
+              {g.players[m.player]?.description?.name || m.player}
+            </p>
+          ) : (
+            <p className="text-stone-50">Erzähler</p>
+          )}
+          {m.audio ? (
+            <audio controls>
+              <source src={m.audio} type="audio/ogg" />
+            </audio>
+          ) : null}
+          <p className="mt-4 text-stone-50">{m.message}</p>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function RunningGameInput() {
   const [value, setValue] = useState("");
-  const ws = useWebSocket(gameWsUriString);
   return (
     <form
       className="flex flex-row justify-between fixed bottom-0 left-4 right-4 w-[calc(100dvw-3rem)] h-fit gap-4"
       onSubmit={(ev) => {
         ev.preventDefault();
-        userInput(ws, value);
+        userInput(value);
         setValue("");
       }}
     >
@@ -106,7 +94,7 @@ function RunningGameInput() {
         type="submit"
         className="btn"
         onClick={() => {
-          userInput(ws, value);
+          userInput(value);
           setValue("");
         }}
       >
@@ -174,44 +162,45 @@ const descriptionTranslations = new Map([
   ["origin", "Herkunft"],
   ["appearance", "Aussehen"],
 ]);
-function InitCharacter(props: {
-  value: PlayerData;
-  onChange: (newValue: PlayerData) => void;
-}) {
+
+function Init(props: Props) {
+  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+  const [violenceLevel, setViolenceLevel] = useState<number>(1);
+  const [length, setLength] = useState<number>(1);
+
   return (
-    <div className="block">
-      {Object.entries(props.value).map(([k, v], i) => (
-        <label
-          className={`block bg-stone-800 p-2 border border-solid rounded-md ${v ? "border-stone-700 has-focus:border-stone-400" : "border-orange-400"} ${i > 0 ? "mt-4" : ""}`}
-        >
-          {descriptionTranslations.get(k) ??
-            k[0].toUpperCase() + k.substring(1)}
-          <input
-            className="block w-full"
-            value={v}
-            onChange={(ev) =>
-              props.onChange({
-                ...props.value,
-                [k]: ev.target.value,
-              })
-            }
-          />
-        </label>
-      ))}
+    <div className="max-w-7xl px-4 justify-center w-fit mx-auto block my-8 pb-64">
+      <InitPlayers />
+      <InitScenario
+        scenarios={props.scenarios}
+        selectedScenario={selectedScenario}
+        setSelectedScenario={setSelectedScenario}
+      />
+      <InitSettings
+        violenceLevel={violenceLevel}
+        setViolenceLevel={setViolenceLevel}
+        length={length}
+        setLength={setLength}
+      />
+
+      <InitStart
+        selectedScenario={selectedScenario}
+        violenceLevel={violenceLevel}
+        length={length}
+      />
     </div>
   );
 }
 
-function Init(props: ExtProps) {
-  const ws = useWebSocket(gameWsUriString);
-  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
-  const [violenceLevel, setViolenceLevel] = useState<number>(1);
-  const [length, setLength] = useState<number>(1);
-  const [playerDescription, setPlayerDescription] = useState<PlayerData>(
-    props.game.players[myUserId]?.description ?? seededRandomCharacter(),
-  );
+interface InitStartProps {
+  selectedScenario: string | null;
+  violenceLevel: number;
+  length: number;
+}
 
-  const playersList = Object.values(props.game.players);
+function InitStart(props: InitStartProps) {
+  const g = useGameData();
+  const playersList = Object.values(g.players);
   const playersWithoutDescription = playersList.filter(
     (p) =>
       !p.description ||
@@ -220,9 +209,49 @@ function Init(props: ExtProps) {
       !p.description.appearance ||
       !p.description.origin,
   ).length;
+  return (
+    <>
+      <p className="block text-xl font-bold mb-4 mt-16">
+        {playersList.length > 1 ? "Seid ihr bereit?" : "Bist Du bereit?"}
+      </p>
+      {!props.selectedScenario && (
+        <p className="my-4 text-orange-400">Bitte wähle eine Szenario</p>
+      )}
+      {playersWithoutDescription > 0 && (
+        <p className="my-4 text-orange-400">
+          Es haben noch nicht alle Spieler eine Charakterbeschreibung angegeben
+        </p>
+      )}
+      <button
+        type="submit"
+        className="btn"
+        disabled={!props.selectedScenario || playersWithoutDescription > 0}
+        onClick={() => {
+          if (props.selectedScenario) {
+            startGame(
+              props.selectedScenario,
+              props.violenceLevel,
+              props.length,
+            );
+          }
+        }}
+      >
+        Los geht's!
+      </button>
+    </>
+  );
+}
+
+function InitPlayers() {
+  const g = useGameData();
+  const [playerDescription, setPlayerDescription] = useState<PlayerData>(
+    g.players[myUserId]?.description ?? seededRandomCharacter(),
+  );
+
+  const playersList = Object.values(g.players);
 
   return (
-    <div className="max-w-7xl px-4 justify-center w-fit mx-auto block my-8 pb-64">
+    <>
       <p className="block text-xl font-bold mb-4">Charaktere</p>
       <p className="my-4 text-stone-500">Angemeldete Spieler</p>
       <ul className="flex flex-row flex-wrap gap-4 justify-between">
@@ -233,20 +262,34 @@ function Init(props: ExtProps) {
               className="w-md border border-stone-500 border-solid rounded-md p-4"
             >
               <p>Charakter {i + 1} (Du)</p>
-              <label className="block w-full">
+              <div className="block w-full">
                 <p className="text-stone-500">Beschreibung</p>
-                <InitCharacter
-                  value={playerDescription}
-                  onChange={(x) => {
-                    setPlayerDescription(x);
-                  }}
-                />
-              </label>
+                <div className="block">
+                  {Object.entries(playerDescription).map(([k, v], i) => (
+                    <label
+                      className={`block bg-stone-800 p-2 border border-solid rounded-md ${v ? "border-stone-700 has-focus:border-stone-400" : "border-orange-400"} ${i > 0 ? "mt-4" : ""}`}
+                    >
+                      {descriptionTranslations.get(k) ??
+                        k[0].toUpperCase() + k.substring(1)}
+                      <input
+                        className="block w-full"
+                        value={v}
+                        onChange={(ev) =>
+                          setPlayerDescription({
+                            ...playerDescription,
+                            [k]: ev.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
               <button
                 type="submit"
                 className={`btn ${!descriptionEquals(playerDescription, player.description) ? "outline-2 outline-solid outline-orange-400" : ""}`}
                 onClick={() => {
-                  setPlayerCharacterDescription(ws, playerDescription);
+                  setPlayerCharacterDescription(playerDescription);
                 }}
               >
                 Speichern
@@ -273,7 +316,18 @@ function Init(props: ExtProps) {
           ),
         )}
       </ul>
+    </>
+  );
+}
 
+interface InitScenarioProps extends Props {
+  selectedScenario: string | null;
+  setSelectedScenario: Dispatch<SetStateAction<string | null>>;
+}
+
+function InitScenario(props: InitScenarioProps) {
+  return (
+    <>
       <p className="text-xl font-bold mb-4 mt-16">Wähle ein Szenario</p>
       <p className="my-4 text-stone-500">
         Dies bestimmt das grundlegende Setting deiner Kampagne.
@@ -285,28 +339,42 @@ function Init(props: ExtProps) {
             title={scenario.title}
             imgSrc={scenario.image}
             id={scenario.id}
-            selected={selectedScenario === scenario.id}
-            onClick={() => setSelectedScenario(scenario.id)}
+            selected={props.selectedScenario === scenario.id}
+            onClick={() => props.setSelectedScenario(scenario.id)}
           />
         ))}
       </div>
+    </>
+  );
+}
 
+interface InitSettingsProps {
+  violenceLevel: number;
+  setViolenceLevel: Dispatch<SetStateAction<number>>;
+
+  length: number;
+  setLength: Dispatch<SetStateAction<number>>;
+}
+
+function InitSettings(props: InitSettingsProps) {
+  return (
+    <>
       <p className="block text-xl font-bold mb-4 mt-16">Einstellungen</p>
       <p className="my-4 text-stone-500">
         Definiere die Feinheiten der Kampagne
       </p>
       <label className="block my-4">
         <p>
-          Gewaltgrad: <span>{violenceLevelToText(violenceLevel)}</span>
+          Gewaltgrad: <span>{violenceLevelToText(props.violenceLevel)}</span>
         </p>
         <input
           className="block w-full max-w-80"
           type="range"
           min={0}
           max={3}
-          value={violenceLevel}
+          value={props.violenceLevel}
           onChange={(e) => {
-            setViolenceLevel(Number(e.target.value));
+            props.setViolenceLevel(Number(e.target.value));
           }}
         />
       </label>
@@ -321,34 +389,10 @@ function Init(props: ExtProps) {
           max={2}
           value={length}
           onChange={(e) => {
-            setLength(Number(e.target.value));
+            props.setLength(Number(e.target.value));
           }}
         />
       </label>
-
-      <p className="block text-xl font-bold mb-4 mt-16">
-        {playersList.length > 1 ? "Seid ihr bereit?" : "Bist Du bereit?"}
-      </p>
-      {!selectedScenario && (
-        <p className="my-4 text-orange-400">Bitte wähle eine Szenario</p>
-      )}
-      {playersWithoutDescription > 0 && (
-        <p className="my-4 text-orange-400">
-          Es haben noch nicht alle Spieler eine Charakterbeschreibung angegeben
-        </p>
-      )}
-      <button
-        type="submit"
-        className="btn"
-        disabled={!selectedScenario || playersWithoutDescription > 0}
-        onClick={() => {
-          if (selectedScenario) {
-            startGame(ws, selectedScenario, violenceLevel, length);
-          }
-        }}
-      >
-        Los geht's!
-      </button>
-    </div>
+    </>
   );
 }
