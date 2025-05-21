@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	filter string
+	filters []string
 )
 
 func main() {
 	if flag.NArg() > 0 {
-		filter = strings.Join(flag.Args(), " ")
+		filters = flag.Args()
 	}
 
 	ctx := context.Background()
@@ -39,10 +39,14 @@ func main() {
 		return
 	}
 	for {
+	items:
 		for _, m := range mp.Items {
-			if strings.Contains(m.Name, filter) || strings.Contains(m.DisplayName, filter) {
-				fmt.Printf("%s (%s)\n", m.Name, m.DisplayName)
+			for _, filter := range filters {
+				if !strings.Contains(m.Name, filter) && !strings.Contains(m.DisplayName, filter) {
+					continue items
+				}
 			}
+			fmt.Printf("%s (%s)\n", m.Name, m.DisplayName)
 		}
 		mp, err = mp.Next(ctx)
 		if err != nil {

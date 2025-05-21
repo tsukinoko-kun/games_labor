@@ -1,22 +1,19 @@
 package ai
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
 	"google.golang.org/genai"
 )
 
 const (
-	mainModel     = "gemini-2.0-flash"
-	thinkingModel = "gemini-2.0-flash-thinking-exp"
+	mainModel     = "gemini-2.0-flash-lite"
+	thinkingModel = "gemini-2.5-flash-preview-05-20"
 )
 
 type (
@@ -58,33 +55,36 @@ type (
 
 var (
 	//go:embed system.txt
-	systemInstructionTxt     string
-	systemInstructionContent = genai.Text(systemInstructionTxt)
+	systemInstructionTxt string
 	//go:embed start.txt
 	startPromptTxt string
 )
 
 var (
-	topP             float32                      = 0.5
-	topK             float32                      = 5
-	temperature      float32                      = 0.7
-	frequencyPenalty float32                      = 0.5
-	presencePenalty  float32                      = 0.5
-	mainConfig       *genai.GenerateContentConfig = &genai.GenerateContentConfig{
-		TopP:             &topP,
-		TopK:             &topK,
-		Temperature:      &temperature,
-		FrequencyPenalty: &frequencyPenalty,
-		PresencePenalty:  &presencePenalty,
-		ResponseMIMEType: "application/json",
-		ResponseSchema:   llmResponseGenaiSchema,
-	}
+	topP        float32 = 0.5
+	topK        float32 = 5
+	temperature float32 = 0.7
+	// frequencyPenalty float32                      = 0.5
+	// presencePenalty  float32                      = 0.5
+	// mainConfig       *genai.GenerateContentConfig = &genai.GenerateContentConfig{
+	// 	TopP:             &topP,
+	// 	TopK:             &topK,
+	// 	Temperature:      &temperature,
+	// 	FrequencyPenalty: &frequencyPenalty,
+	// 	PresencePenalty:  &presencePenalty,
+	// 	ResponseMIMEType: "application/json",
+	// 	ResponseSchema:   llmResponseGenaiSchema,
+	// }
 	thinkingConfig *genai.GenerateContentConfig = &genai.GenerateContentConfig{
 		TopP:             &topP,
 		TopK:             &topK,
 		Temperature:      &temperature,
 		ResponseMIMEType: "application/json",
 		ResponseSchema:   llmResponseGenaiSchema,
+		SystemInstruction: &genai.Content{
+			Parts: []*genai.Part{{Text: systemInstructionTxt}},
+			Role:  "model",
+		},
 	}
 )
 
@@ -107,19 +107,19 @@ func (llm *AI) Data() []*genai.Content {
 		data.RecentChatHistory = llm.ChatHistory
 	}
 	je := json.NewEncoder(&sb)
-	je.Encode(data)
+	_ = je.Encode(data)
 
 	return genai.Text(sb.String())
 }
 
 func (llm *AI) Start(scenario string) ResponseSchema {
 	fmt.Println("Starting scenario:", scenario)
-	return llm.Text(true, systemInstructionContent, llm.Data(), genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
+	return llm.Text(true, llm.Data(), genai.Text(fmt.Sprintf(startPromptTxt, scenario)))
 }
 
 func (llm *AI) Continue(text string) ResponseSchema {
 	fmt.Println("Continuing:", text)
-	return llm.Text(false, systemInstructionContent, llm.Data(), genai.Text(text))
+	return llm.Text(false, llm.Data(), genai.Text(text))
 }
 
 func flatten[T any](slice [][]T) []T {
@@ -136,18 +136,18 @@ func flatten[T any](slice [][]T) []T {
 
 func (ai *AI) Text(thinking bool, parts ...[]*genai.Content) ResponseSchema {
 	var model string
-	var config *genai.GenerateContentConfig
+	config := thinkingConfig
 	if thinking {
 		model = thinkingModel
-		config = thinkingConfig
+		// config = thinkingConfig
 	} else {
 		model = mainModel
-		config = mainConfig
+		// config = mainConfig
 	}
 	resp, err := ai.llmClient.Models.GenerateContent(ai.ctx, model, flatten(parts), config)
 	if err != nil {
 		fmt.Println("Error generating content:", err)
-		return ResponseSchema{}
+		return ResponseSchema{NarratorText: "Error generating content: " + err.Error()}
 	}
 
 	sb := strings.Builder{}
@@ -159,7 +159,7 @@ func (ai *AI) Text(thinking bool, parts ...[]*genai.Content) ResponseSchema {
 
 	jd := json.NewDecoder(strings.NewReader(sb.String()))
 	respData := ResponseSchema{}
-	jd.Decode(&respData)
+	_ = jd.Decode(&respData)
 
 	ai.applyResponse(respData)
 
@@ -212,30 +212,6 @@ func (llm *AI) applyResponse(resp ResponseSchema) {
 			}
 		}
 	}
-}
-
-func (ai *AI) TTS(text string) (string, error) {
-	req := texttospeechpb.SynthesizeSpeechRequest{
-		Input: &texttospeechpb.SynthesisInput{
-			InputSource: &texttospeechpb.SynthesisInput_Text{Text: text},
-		},
-		Voice: &texttospeechpb.VoiceSelectionParams{
-			LanguageCode: "de-DE",
-			SsmlGender:   texttospeechpb.SsmlVoiceGender_MALE,
-		},
-		AudioConfig: &texttospeechpb.AudioConfig{
-			AudioEncoding: texttospeechpb.AudioEncoding_OGG_OPUS,
-			Pitch:         -7.5,
-			SpeakingRate:  1,
-		},
-	}
-
-	ctx := context.Background()
-	resp, err := ai.ttsClient.SynthesizeSpeech(ctx, &req)
-	if err != nil {
-		return "", errors.Join(errors.New("failed to synthesize speech"), err)
-	}
-	return saveOgg(resp.GetAudioContent())
 }
 
 func (rs *ResponseSchema) JSON() string {

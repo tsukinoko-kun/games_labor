@@ -22,8 +22,12 @@ func init() {
 	}
 }
 
+func FullFilename(filename string) string {
+	return filepath.Join(tempDir, strings.TrimPrefix(filename, "/ai/"))
+}
+
 func Handler(w http.ResponseWriter, r *http.Request) {
-	filename := filepath.Join(tempDir, strings.TrimPrefix(r.URL.Path, "/ai/"))
+	filename := FullFilename(r.URL.Path)
 	http.ServeFile(w, r, filename)
 }
 
