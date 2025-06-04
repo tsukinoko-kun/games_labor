@@ -10,6 +10,8 @@ Ich verwende Gemini 2.5 Flash als Haupt-Model.
 Für die initiale Nachricht wird Gemini 2.5 Pro verwendet,
 da dieses Thinking Model einen sinnvolleren und vor allem interessanteren Story-Plan erzeugt.
 
+Die Geschwindigkeit variiert auch nach Tageszeit, was die Wahl des Modells erschwert.
+
 ## Eigene Datenbank
 
 ### Architektur
