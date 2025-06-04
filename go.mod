@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/texttospeech v1.13.0
 	github.com/a-h/templ v0.3.865
 	github.com/gorilla/websocket v1.5.3
+	github.com/qdrant/go-client v1.14.0
 	google.golang.org/genai v1.6.0
 )
 

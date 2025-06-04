@@ -33,6 +33,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 func Cleanup() {
 	_ = os.RemoveAll(tempDir)
+	_ = qdrantClient.Close()
 }
 
 func saveOgg(audio []byte) (string, error) {
