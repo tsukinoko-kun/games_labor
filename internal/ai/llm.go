@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	mainModel     = "gemini-2.0-flash-lite"
-	thinkingModel = "gemini-2.5-flash-preview-05-20"
+	mainModel     = "gemini-2.5-flash-preview-05-20"
+	thinkingModel = "gemini-2.5-pro-preview-05-06"
 )
 
 type (
