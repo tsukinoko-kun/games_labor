@@ -90,3 +90,23 @@ Genau hier liegt das der Ursprung des Problems.
 Durch die kreative Art wie das LLM generiert, entscheidet es eher willkürlich, welche Informationen für das Fortsetzen der Story genutzt werden.
 Um eine Query für die nötigen Daten erstellen zu können, werden genau diese Daten benötigt.
 
+## Sessions
+
+Jeder Browser, der noch keinen ID-Cookie hat, bekommt eine neue UUID als Cookie gesetzt.
+Diese wird verwendet, um den Spieler (bzw. seinen Browser) zu identifizieren.
+
+## Synchronisation
+
+Zu Beginn bekommt jeder Browser den kompletten, aktuellen Game-State.
+Danach werden alle Updates des Game-State inkrementell übertragen um die Datenübertragungsrate zwischen dem Server und dem Browser zu minimieren.
+
+Der Browser kann jederzeit die Seite neu laden oder zwischen verschiedenen Kampagnen wechseln,
+ohne, dass es dadurch zu Datenverlust oder Unterbrechungen bei den anderen Browsern in der Kampagne kommt.
+
+Die React Oberfläche rendert die updates auch inkrementell und scrollt automatisch zur neuesten Nachricht usw.
+
+## Multiplayer
+
+In einer Kampagne können theoretisch beliebig viele Spieler gleichzeitig teilnehmen.
+Jeder Spieler wird über seine UUID identifiziert.
+Die Daten zu seinem Spieler-Charakter werden auch dieser UUID zugeordnet, damit das LLM weiß, welcher Charakter zu welchem Spieler gehört.
