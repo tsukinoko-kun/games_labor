@@ -8,6 +8,7 @@ In meinem Test hat die Gemini Familie allgemein die beste Qualität an Text-Outp
 
 Dabei habe ich getestet, wie gut das LLM einen Ansprechenden Text generieren kann. Ich habe Instruktionen angegeben, wie ein Text gut lesbar ist, interessanten Rhythmus hat ect.
 Ich habe getestet:
+
 - Gemini 2.0 Flash
 - Gemini 2.0 Flash Lite
 - Gemini 2.5 Flash
@@ -36,6 +37,20 @@ Die Geschwindigkeit variiert auch nach Tageszeit, was die Wahl des Modells ersch
 ### Architektur
 
 ![](docs/architecture.jpg)
+
+Normalerweise kennt ein LLM einen bestimmten Bereich aus der Chat-Historie, den es als Kontext verwenden kann, um seine Antworten zu generieren. Da das sehr unstrukturiert ist, kann es vorkommen, dass das LLM bei längeren Chats vergisst, worum es eigentlich geht. Er vergisst, dass wir ein Pen and Paper spielen und was der ursprüngliche Plan für die Kampagne war.
+
+Um das zu lösen, habe ich die Daten in verschiedene Gebiete eingeteilt.
+
+Ein Bereich für den groben Plan der Kampagne. Hier wird zu Beginn ein Pfad geplant, den die Geschichte nehmen soll.
+
+Weite und nahe Vergangenheit, um zu speichern, was passiert ist. Die nahe Vergangenheit ist detaillierter, aber deckt nur den Teil der Geschehnisse ab, die erst vor kurzem passiert sind.
+
+Anfangs hatte ich extra Speicher für verschiedene Arten von Entitäten, wie Orte, Personen, Gegenstände, etc. Diese sind jetzt aber als Entitäten zusammengefasst, da es teilweise Überschneidungen zwischen den Arten gab und ich keine Lust mehr hatte immer noch eine neue Art von Entität anzulegen.
+
+Die Chat Historie wird auch teilweise mitgegeben. Das dient dazu, das Pacing zu verbessert. Wenn das LLM weiß, was es zuletzt gesagt hat, ist es wahrscheinlicher, dass es sich nicht ständig wiederholt.
+
+Das LLM ist angewiesen, neue Einträge für diese Speicher zurückzugeben, und es bekommt bei jeder neuen Anfrage die gesamten Daten mit, anstatt der Chat Historie. Da diese Daten so organisierter sind, ist es für das LLM sehr einfach, sie sinnvoll zu nutzen.
 
 ### JSON Schema
 
@@ -95,6 +110,8 @@ Um eine Query für die nötigen Daten erstellen zu können, werden genau diese D
 Jeder Browser, der noch keinen ID-Cookie hat, bekommt eine neue UUID als Cookie gesetzt.
 Diese wird verwendet, um den Spieler (bzw. seinen Browser) zu identifizieren.
 
+![](docs/session.jpg)
+
 ## Synchronisation
 
 Zu Beginn bekommt jeder Browser den kompletten, aktuellen Game-State.
@@ -104,6 +121,8 @@ Der Browser kann jederzeit die Seite neu laden oder zwischen verschiedenen Kampa
 ohne, dass es dadurch zu Datenverlust oder Unterbrechungen bei den anderen Browsern in der Kampagne kommt.
 
 Die React Oberfläche rendert die updates auch inkrementell und scrollt automatisch zur neuesten Nachricht usw.
+
+![](docs/sync.jpg)
 
 ## Multiplayer
 
