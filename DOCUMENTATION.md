@@ -6,6 +6,25 @@ Frank Mayer
 
 In meinem Test hat die Gemini Familie allgemein die beste Qualität an Text-Output.
 
+Dabei habe ich getestet, wie gut das LLM einen Ansprechenden Text generieren kann. Ich habe Instruktionen angegeben, wie ein Text gut lesbar ist, interessanten Rhythmus hat ect.
+Ich habe getestet:
+- Gemini 2.0 Flash
+- Gemini 2.0 Flash Lite
+- Gemini 2.5 Flash
+- Gemini 2.5 Pro
+- GPT o3-mini
+- GPT o4-mini
+- Claude 3.5 Sonnet
+- Claude 4 Sonnet
+- DeepSeek R1
+- DeepSeek v3
+- Llama 4 Scout
+- Llama 4 Maverick
+- Grok 3
+- Qwen qwq-32b
+
+Dabei waren die Ergebnisse von Gemini mit großem Abstand am besten.
+
 Ich verwende Gemini 2.5 Flash als Haupt-Model.
 Für die initiale Nachricht wird Gemini 2.5 Pro verwendet,
 da dieses Thinking Model einen sinnvolleren und vor allem interessanteren Story-Plan erzeugt.
