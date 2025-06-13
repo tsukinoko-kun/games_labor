@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	cloud.google.com/go/texttospeech v1.13.0
-	github.com/a-h/templ v0.3.865
+	github.com/a-h/templ v0.3.898
 	github.com/gorilla/websocket v1.5.3
 	google.golang.org/genai v1.6.0
 )

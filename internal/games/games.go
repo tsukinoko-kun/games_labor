@@ -1,24 +1,29 @@
 package games
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"gameslabor/internal/ai"
 	"gameslabor/internal/games/scenarios"
 	"gameslabor/internal/server/hub"
 	"log"
+	"math/rand/v2"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type (
 	Game struct {
-		ID      string             `json:"id"`
-		AI      *ai.AI             `json:"ai"`
-		Players map[string]*Player `json:"players"`
-		mut     sync.Mutex         `json:"-"`
-		State   GameState          `json:"state"`
+		ID             string             `json:"id"`
+		AI             *ai.AI             `json:"ai"`
+		Players        map[string]*Player `json:"players"`
+		mut            sync.Mutex         `json:"-"`
+		Roll           *DiceRoll          `json:"roll"`
+		State          GameState          `json:"state"`
+		AcceptingInput bool               `json:"accepting_input"`
 	}
 
 	GameState uint8
@@ -35,6 +40,12 @@ type (
 		Description PlayerData `json:"description"`
 	}
 )
+
+type DiceRoll struct {
+	Message    string `json:"message"`
+	Difficulty uint8  `json:"difficulty"`
+	Result     uint8  `json:"result"`
+}
 
 type (
 	WsFullOverwrite struct {
@@ -56,11 +67,13 @@ func New() *Game {
 
 func newWithId(id string) *Game {
 	game := &Game{
-		ID:      id,
-		AI:      ai.Empty(),
-		State:   GameStateInit,
-		Players: make(map[string]*Player),
-		mut:     sync.Mutex{},
+		id,
+		ai.Empty(),
+		make(map[string]*Player),
+		sync.Mutex{},
+		nil,
+		GameStateInit,
+		false,
 	}
 	Games[id] = game
 	return game
@@ -91,8 +104,22 @@ func (g *Game) PlayerInput(playerID string, input string) {
 	defer g.mut.Unlock()
 
 	if g.State != GameStateRunning {
+		log.Printf("game state is not running, can't player input\n")
 		return
 	}
+
+	if !g.AcceptingInput {
+		log.Printf("accepting input is not enabled, can't player input\n")
+		return
+	}
+
+	g.AcceptingInput = false
+	hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", false})
+
+	defer func() {
+		g.AcceptingInput = true
+		hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", true})
+	}()
 
 	{
 		newChatMessage := ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input}
@@ -105,9 +132,49 @@ func (g *Game) PlayerInput(playerID string, input string) {
 		newChatMessage := ai.ChatMessage{Role: "model", Message: resp.NarratorText}
 		g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
 		hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+		if resp.RollDice != nil {
+			r := rollDice(uint8(resp.RollDice.Difficulty))
+			g.Roll = r
+			g.Roll.Message = resp.NarratorText
+			go func() {
+				var success string
+				if r.Result <= r.Difficulty {
+					success = "Erfolg"
+				} else {
+					success = "Versagt"
+				}
+				time.Sleep(5 * time.Second)
+				g.PlayerInput(
+					playerID,
+					fmt.Sprintf(
+						"Ich habe eine %d mit einem D20 gewürfelt. Die Schwierigkeit war %d, ich habe also %s.",
+						r.Result,
+						r.Difficulty,
+						success,
+					),
+				)
+			}()
+		} else {
+			g.Roll = nil
+		}
+		hub.Broadcast(g.ID, WsSetOrPush{"set", "roll", g.Roll})
 	}
 
 	go g.addAllMissingAudio()
+}
+
+func clamp[T cmp.Ordered](min, v, max T) T {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func rollDice(difficulty uint8) *DiceRoll {
+	return &DiceRoll{Difficulty: difficulty, Result: uint8(rand.UintN(clamp(1, uint(difficulty), 20)) + 1)}
 }
 
 func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
@@ -115,6 +182,7 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	defer g.mut.Unlock()
 
 	if g.State != GameStateInit {
+		log.Printf("game state is not init, can't start game\n")
 		return
 	}
 
@@ -129,6 +197,7 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	s += "\n\nZiel-Länge der gesammten Kampagne: " + scenarios.Duration(duration).String()
 
 	g.State = GameStateRunning
+	g.AcceptingInput = false
 	g.AI, err = ai.New(ctx)
 	if err != nil {
 		log.Printf("failed to create AI: %v", err)
@@ -145,6 +214,9 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
 	fmt.Printf("First message: %s\n", resp.JSON())
 	hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+
+	g.AcceptingInput = true
+	hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", true})
 
 	go g.addAllMissingAudio()
 }

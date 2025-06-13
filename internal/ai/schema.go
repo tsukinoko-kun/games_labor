@@ -72,7 +72,7 @@ var (
 			"roll_dice": {
 				Type:        genai.TypeObject,
 				Nullable:    falsePtr,
-				Description: "Ferwende `roll_dice` um einen Spieler würfeln zu lassen. Nutze das, wenn ein Spieler etwas tun will oder muss, das für diesen nicht selbstverständlich machbar ist. Wenn es hingegen unmöglich ist, muss der Spieler nicht würfeln, er darf das dann einfach nicht tun.",
+				Description: "Verwende `roll_dice` um einen Spieler würfeln zu lassen. Nutze das, wenn ein Spieler etwas tun will oder muss, das für diesen nicht selbstverständlich machbar ist. Wenn es hingegen unmöglich ist, muss der Spieler nicht würfeln, er darf das dann einfach nicht tun.",
 				Required:    []string{"difficulty"},
 				Properties: map[string]*genai.Schema{
 					"difficulty": {

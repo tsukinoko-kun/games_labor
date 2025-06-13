@@ -27,6 +27,7 @@ const gameSync = new Sync<GameData>({
     chat_history: [],
     entity_data: {},
   },
+  roll: null,
   players: {},
   id: "",
 });

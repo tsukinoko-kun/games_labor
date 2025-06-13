@@ -1,4 +1,10 @@
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import {
+  type Dispatch,
+  memo,
+  type SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 import {
   useGameData,
   setPlayerCharacterDescription,
@@ -8,6 +14,7 @@ import {
 import {
   chatMessageId,
   descriptionEquals,
+  DiceRoll,
   GameState,
   type PlayerData,
 } from "./types.ts";
@@ -28,9 +35,11 @@ export function Game(props: Props) {
 }
 
 function RunningGame() {
+  const g = useGameData();
   return (
     <>
       <RunningGameChatHistory />
+      {g.roll ? <Roll roll={g.roll} /> : null}
       <RunningGameInput />
     </>
   );
@@ -44,6 +53,13 @@ function RunningGameChatHistory() {
       .item(chatMessages.length - 1)
       ?.scrollIntoView({ behavior: "smooth" });
   });
+  if (g.ai.chat_history.length === 0) {
+    return (
+      <p className="text-xl p-8 text-stone-50">
+        Kampagne wird geplant... das dauert einen Moment.
+      </p>
+    );
+  }
   return (
     <ul className="max-w-5xl mx-auto pb-64">
       {g.ai.chat_history.map((m) => (
@@ -52,17 +68,21 @@ function RunningGameChatHistory() {
           className="chat-message block p-4 my-4 border border-stone-700 border-solid rounded-md"
         >
           {m.role === "user" ? (
-            <p style={{ color: stringToColor(m.player) }}>
+            <p className="text-xl" style={{ color: stringToColor(m.player) }}>
               {g.players[m.player]?.description?.name || m.player}
             </p>
           ) : (
-            <p className="text-stone-50">Erzähler</p>
+            <p className="text-stone-50 text-xl">
+              Erzähler
+              {m.audio ? (
+                <audio className="h-[1em] ml-4 inline-block" controls>
+                  <source src={m.audio} type="audio/ogg" />
+                </audio>
+              ) : (
+                <span className="text-xs ml-4">Audio wird generiert...</span>
+              )}
+            </p>
           )}
-          {m.audio ? (
-            <audio controls>
-              <source src={m.audio} type="audio/ogg" />
-            </audio>
-          ) : null}
           <p className="mt-4 text-stone-50">{m.message}</p>
         </li>
       ))}
@@ -71,12 +91,16 @@ function RunningGameChatHistory() {
 }
 
 function RunningGameInput() {
+  const g = useGameData();
   const [value, setValue] = useState("");
   return (
     <form
       className="flex flex-row justify-between fixed bottom-0 left-4 right-4 w-[calc(100dvw-3rem)] h-fit gap-4"
       onSubmit={(ev) => {
         ev.preventDefault();
+        if (!g.accepting_input) {
+          return;
+        }
         userInput(value);
         setValue("");
       }}
@@ -93,7 +117,11 @@ function RunningGameInput() {
       <button
         type="submit"
         className="btn"
+        disabled={!g.accepting_input}
         onClick={() => {
+          if (!g.accepting_input) {
+            return;
+          }
           userInput(value);
           setValue("");
         }}
@@ -103,6 +131,34 @@ function RunningGameInput() {
     </form>
   );
 }
+
+const Roll = memo(
+  function DiceRoll(props: { roll: DiceRoll }) {
+    return (
+      <div className="fixed inset-0 pb-[30vh] bg-stone-950 p-4 z-50">
+        <p>{props.roll.message}</p>
+        <p className="text-white text-2xl font-bold text-center">
+          Schwierigkeit: {props.roll.difficulty}
+        </p>
+        <p
+          className={
+            "die-outcome text-2xl font-bold text-center " +
+            (props.roll.result >= props.roll.difficulty
+              ? "text-green-400"
+              : "text-red-400")
+          }
+        >
+          {props.roll.result >= props.roll.difficulty ? "Erfolg" : "Fehlschlag"}
+        </p>
+        <Die face={props.roll.result} className="h-[256px] w-full" />
+      </div>
+    );
+  },
+  (a, b) =>
+    a.roll.message === b.roll.message &&
+    a.roll.difficulty === b.roll.difficulty &&
+    a.roll.result === b.roll.result,
+);
 
 function InitScenarioButton(props: {
   title: string;
@@ -380,19 +436,48 @@ function InitSettings(props: InitSettingsProps) {
       </label>
       <label className="block my-4">
         <p>
-          Länge: <span>{lengthToText(length)}</span>
+          Länge: <span>{lengthToText(props.length)}</span>
         </p>
         <input
           className="block w-full max-w-80"
           type="range"
           min={0}
           max={2}
-          value={length}
+          value={props.length}
           onChange={(e) => {
             props.setLength(Number(e.target.value));
           }}
         />
       </label>
     </>
+  );
+}
+
+function Die(props: { face: number; className?: string }) {
+  return (
+    <div className="die_container">
+      <div className={"die " + (props.className ?? "")} data-face={props.face}>
+        <figure className="face face-1"></figure>
+        <figure className="face face-2"></figure>
+        <figure className="face face-3"></figure>
+        <figure className="face face-4"></figure>
+        <figure className="face face-5"></figure>
+        <figure className="face face-6"></figure>
+        <figure className="face face-7"></figure>
+        <figure className="face face-8"></figure>
+        <figure className="face face-9"></figure>
+        <figure className="face face-10"></figure>
+        <figure className="face face-11"></figure>
+        <figure className="face face-12"></figure>
+        <figure className="face face-13"></figure>
+        <figure className="face face-14"></figure>
+        <figure className="face face-15"></figure>
+        <figure className="face face-16"></figure>
+        <figure className="face face-17"></figure>
+        <figure className="face face-18"></figure>
+        <figure className="face face-19"></figure>
+        <figure className="face face-20"></figure>
+      </div>
+    </div>
   );
 }

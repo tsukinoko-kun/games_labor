@@ -46,6 +46,13 @@ export const AIShema = z.object({
 });
 export type AI = z.infer<typeof AIShema>;
 
+export const DiceRollSchema = z.object({
+  message: z.string(),
+  difficulty: z.number(),
+  result: z.number(),
+});
+export type DiceRoll = z.infer<typeof DiceRollSchema>;
+
 export const GameState = { INIT: 0, RUNNING: 1 } as const;
 export const GameStateShema = z.nativeEnum(GameState);
 export type GameState = z.infer<typeof GameStateShema>;
@@ -55,6 +62,8 @@ export const GameDataShema = z.object({
   players: z.record(PlayerShema),
   state: GameStateShema,
   ai: AIShema,
+  roll: DiceRollSchema.nullable(),
+  accepting_input: z.boolean(),
 });
 export type GameData = z.infer<typeof GameDataShema>;
 

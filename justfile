@@ -7,7 +7,6 @@ run:
     @just prebuild
     go run ./cmd/app --port 4321
 
-run:
+dev:
     @just prebuild
-    go build ./cmd/app
-
+    air
