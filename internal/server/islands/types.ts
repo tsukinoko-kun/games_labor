@@ -47,7 +47,6 @@ export const AIShema = z.object({
 export type AI = z.infer<typeof AIShema>;
 
 export const DiceRollSchema = z.object({
-  message: z.string(),
   difficulty: z.number(),
   result: z.number(),
 });

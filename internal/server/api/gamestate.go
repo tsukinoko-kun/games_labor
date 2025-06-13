@@ -99,6 +99,8 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			go game.PlayerInput(ctx.UserID, inputAction.Input)
+		case "continue_after_roll":
+			go game.ContinueAfterRoll()
 		}
 	}
 }

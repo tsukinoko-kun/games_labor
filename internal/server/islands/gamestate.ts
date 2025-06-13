@@ -19,6 +19,8 @@ if (gameWsUri.protocol === "http:") {
 const ws = new WebSocket(gameWsUri.toString());
 
 const gameSync = new Sync<GameData>({
+  id: "",
+  players: {},
   state: 0,
   ai: {
     event_plan: [],
@@ -28,8 +30,7 @@ const gameSync = new Sync<GameData>({
     entity_data: {},
   },
   roll: null,
-  players: {},
-  id: "",
+  accepting_input: false,
 });
 
 const WsFullOverwrite = z.object({
@@ -150,6 +151,19 @@ export function userInput(input: string) {
     JSON.stringify({
       action: "user_input",
       input,
+    }),
+  );
+}
+
+export function continueAfterRoll() {
+  if (ws.readyState !== WebSocket.OPEN) {
+    error("can't send user input, WebSocket is not open");
+    return;
+  }
+
+  ws.send(
+    JSON.stringify({
+      action: "continue_after_roll",
     }),
   );
 }

@@ -10,7 +10,6 @@ import (
 	"log"
 	"math/rand/v2"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -42,9 +41,8 @@ type (
 )
 
 type DiceRoll struct {
-	Message    string `json:"message"`
-	Difficulty uint8  `json:"difficulty"`
-	Result     uint8  `json:"result"`
+	Difficulty uint8 `json:"difficulty"`
+	Result     uint8 `json:"result"`
 }
 
 type (
@@ -116,51 +114,30 @@ func (g *Game) PlayerInput(playerID string, input string) {
 	g.AcceptingInput = false
 	hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", false})
 
-	defer func() {
-		g.AcceptingInput = true
-		hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", true})
-	}()
-
 	{
 		newChatMessage := ai.ChatMessage{Role: "user", PlayerID: playerID, Message: input}
 		g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
 		hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
 	}
 
-	{
-		resp := g.AI.Continue(fmt.Sprintf(`Führe die Geschichte nach dem Input von Spieler %s weiter.`, playerID))
-		newChatMessage := ai.ChatMessage{Role: "model", Message: resp.NarratorText}
-		g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
-		hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
-		if resp.RollDice != nil {
-			r := rollDice(uint8(resp.RollDice.Difficulty))
-			g.Roll = r
-			g.Roll.Message = resp.NarratorText
-			go func() {
-				var success string
-				if r.Result <= r.Difficulty {
-					success = "Erfolg"
-				} else {
-					success = "Versagt"
-				}
-				time.Sleep(5 * time.Second)
-				g.PlayerInput(
-					playerID,
-					fmt.Sprintf(
-						"Ich habe eine %d mit einem D20 gewürfelt. Die Schwierigkeit war %d, ich habe also %s.",
-						r.Result,
-						r.Difficulty,
-						success,
-					),
-				)
-			}()
-		} else {
-			g.Roll = nil
-		}
-		hub.Broadcast(g.ID, WsSetOrPush{"set", "roll", g.Roll})
-	}
-
+	g.continueWithPrompt(fmt.Sprintf(`Führe die Geschichte nach dem Input von Spieler %s weiter.`, playerID))
 	go g.addAllMissingAudio()
+}
+
+func (g *Game) continueWithPrompt(processingPrompt string) {
+	resp := g.AI.Continue(processingPrompt)
+	newChatMessage := ai.ChatMessage{Role: "model", Message: resp.NarratorText}
+	g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
+	hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+	if resp.RollDice != nil {
+		r := rollDice(uint8(resp.RollDice.Difficulty))
+		g.Roll = r
+	} else {
+		g.Roll = nil
+		g.AcceptingInput = true
+		hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", true})
+	}
+	hub.Broadcast(g.ID, WsSetOrPush{"set", "roll", g.Roll})
 }
 
 func clamp[T cmp.Ordered](min, v, max T) T {
@@ -221,6 +198,30 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	go g.addAllMissingAudio()
 }
 
+func (g *Game) ContinueAfterRoll() {
+	g.mut.Lock()
+	defer g.mut.Unlock()
+
+	if g.State != GameStateRunning {
+		log.Printf("game state is not running, can't continue after roll\n")
+		return
+	}
+
+	if g.Roll == nil {
+		log.Printf("no roll, can't continue after roll\n")
+		return
+	}
+
+	hub.Broadcast(g.ID, WsSetOrPush{"set", "roll", nil})
+
+	if g.Roll.Result >= g.Roll.Difficulty {
+		g.continueWithPrompt(fmt.Sprintf("Es wurde eine %d von %d gewürfelt, der Roll ist damit erfolgreich. Führe die Geschichte fort.", g.Roll.Result, g.Roll.Difficulty))
+	} else {
+		g.continueWithPrompt(fmt.Sprintf("Es wurde eine %d von %d gewürfelt, der Roll ist damit fehlgeschlagen. Führe die Geschichte fort.", g.Roll.Result, g.Roll.Difficulty))
+	}
+	go g.addAllMissingAudio()
+}
+
 func (g *Game) addAllMissingAudio() {
 	g.mut.Lock()
 	defer g.mut.Unlock()
@@ -249,6 +250,20 @@ func (g *Game) addAllMissingAudio() {
 func init() {
 	// just for testing
 	newWithId("28603f7e-77c7-487b-8d06-548354c35178")
+	// g.AddPlayer("user_01JXABDXJS92BR5G5CH710QE0H")
+	// g.Players["user_01JXABDXJS92BR5G5CH710QE0H"].Description = PlayerData{
+	// 	Name:       "Spieler 1",
+	// 	Age:        "20",
+	// 	Origin:     "Deutschland",
+	// 	Appearance: "Männlich",
+	// }
+	// g.AI, _ = ai.New(context.Background())
+	// g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: "Du trinkst gerade dein Bir in einer lokalen Bar, als prötzlich drei Garnoven durch die Tür schreiten. Mit Waffen auf dich und andere zielend sagen sie: \"Das ist ein Überfall, alle die Hände hoch und keiner rührt sich!\""})
+	// g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "user", PlayerID: "user_01JXABDXJS92BR5G5CH710QE0H", Message: "Ich hole ein Messer aus meinem Holster am Bein und greife die Garnoven an."})
+	// g.AI.ChatHistory = append(g.AI.ChatHistory, ai.ChatMessage{Role: "model", Message: "Ok, würfle, ob du es schaffst einen anzugreifen, ohne, dass er dich verletzt."})
+	// g.AcceptingInput = false
+	// g.State = GameStateRunning
+	// g.Roll = &DiceRoll{Difficulty: 4, Result: 5}
 }
 
 const (

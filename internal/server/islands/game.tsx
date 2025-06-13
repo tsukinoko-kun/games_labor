@@ -10,6 +10,7 @@ import {
   setPlayerCharacterDescription,
   startGame,
   userInput,
+  continueAfterRoll,
 } from "./gamestate.ts";
 import {
   chatMessageId,
@@ -35,11 +36,9 @@ export function Game(props: Props) {
 }
 
 function RunningGame() {
-  const g = useGameData();
   return (
     <>
       <RunningGameChatHistory />
-      {g.roll ? <Roll roll={g.roll} /> : null}
       <RunningGameInput />
     </>
   );
@@ -56,7 +55,7 @@ function RunningGameChatHistory() {
   if (g.ai.chat_history.length === 0) {
     return (
       <p className="text-xl p-8 text-stone-50">
-        Kampagne wird geplant... das dauert einen Moment.
+        Kampagne wird geplant... das dauert eine Weile.
       </p>
     );
   }
@@ -86,6 +85,15 @@ function RunningGameChatHistory() {
           <p className="mt-4 text-stone-50">{m.message}</p>
         </li>
       ))}
+      {g.roll ? (
+        <Roll roll={g.roll} />
+      ) : g.accepting_input ? null : (
+        <li className="chat-message block p-4 my-4 border border-stone-700 border-solid rounded-md">
+          <p className="p-8 text-stone-50">
+            Kampagne wird fortgesetzt... das dauert einen kurzen Moment.
+          </p>
+        </li>
+      )}
     </ul>
   );
 }
@@ -133,31 +141,56 @@ function RunningGameInput() {
 }
 
 const Roll = memo(
-  function DiceRoll(props: { roll: DiceRoll }) {
+  function Roll(props: { roll: DiceRoll | null }) {
+    useEffect(() => {
+      const dieContainerEl = document.getElementsByClassName("die_container");
+      for (let i = 0; i < dieContainerEl.length; i++) {
+        const el = dieContainerEl.item(i);
+        el?.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+    if (!props.roll) {
+      return null;
+    }
     return (
-      <div className="fixed inset-0 pb-[30vh] bg-stone-950 p-4 z-50">
-        <p>{props.roll.message}</p>
-        <p className="text-white text-2xl font-bold text-center">
-          Schwierigkeit: {props.roll.difficulty}
-        </p>
-        <p
-          className={
-            "die-outcome text-2xl font-bold text-center " +
-            (props.roll.result >= props.roll.difficulty
-              ? "text-green-400"
-              : "text-red-400")
-          }
-        >
-          {props.roll.result >= props.roll.difficulty ? "Erfolg" : "Fehlschlag"}
-        </p>
-        <Die face={props.roll.result} className="h-[256px] w-full" />
-      </div>
+      <li className="chat-message block p-4 my-4 overflow-clip border border-stone-700 border-solid rounded-md">
+        <div className="">
+          <p className="text-white text-2xl font-bold text-center">
+            Schwierigkeit: {props.roll.difficulty}
+          </p>
+          <p
+            className={
+              "die-outcome text-2xl font-bold text-center " +
+              (props.roll.result >= props.roll.difficulty
+                ? "text-green-400"
+                : "text-red-400")
+            }
+          >
+            {props.roll.result >= props.roll.difficulty
+              ? "Erfolg"
+              : "Fehlschlag"}
+          </p>
+          <Die
+            face={props.roll.result}
+            className="h-[256px] w-full pointer-events-none"
+          />
+          <button
+            className="btn block mx-auto"
+            style={{ marginTop: "20rem" }}
+            onClick={() => continueAfterRoll()}
+          >
+            Fortfahren
+          </button>
+        </div>
+      </li>
     );
   },
   (a, b) =>
-    a.roll.message === b.roll.message &&
-    a.roll.difficulty === b.roll.difficulty &&
-    a.roll.result === b.roll.result,
+    (a.roll === null && b.roll === null) ||
+    (a.roll !== null &&
+      b.roll !== null &&
+      a.roll.difficulty === b.roll.difficulty &&
+      a.roll.result === b.roll.result),
 );
 
 function InitScenarioButton(props: {

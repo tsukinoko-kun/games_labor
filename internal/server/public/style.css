@@ -19,7 +19,7 @@ input[type="range"]::-webkit-slider-runnable-track {
 .die_container {
   position: relative;
   perspective: 1500px;
-  animation: roll-translate 1700ms linear;
+  animation: roll-translate 2700ms linear;
 }
 
 @keyframes roll-rotate {
@@ -29,13 +29,28 @@ input[type="range"]::-webkit-slider-runnable-track {
 }
 @keyframes roll-translate {
   0% {
-    translate: 0 1000px;
+    translate: 6rem 0;
+  }
+  10% {
+    translate: 0 -3rem;
+  }
+  20% {
+    translate: -6rem 0;
+  }
+  30% {
+    translate: 0 4rem;
+  }
+  40% {
+    translate: 5rem 0;
   }
   50% {
-    translate: 120px 300px;
+    translate: 0 -2rem;
   }
-  80% {
-    translate: -50px 80px;
+  60% {
+    translate: -4rem 0;
+  }
+  70% {
+    translate: 0 3rem;
   }
   100% {
     translate: 0 0;
@@ -53,31 +68,29 @@ input[type="range"]::-webkit-slider-runnable-track {
   }
 }
 @keyframes die-outcome-in {
-  0% {
+  from {
     opacity: 0;
     scale: 2;
   }
-  85% {
-    opacity: 0;
-    scale: 2;
-  }
-  100% {
+  to {
     opacity: 1;
     scale: 1;
   }
 }
 
 .die-outcome {
-  animation: die-outcome-in 4s linear;
+  opacity: 0;
+  animation: die-outcome-in 500ms linear forwards 4500ms;
 }
 .die {
   position: absolute;
   transform-style: preserve-3d;
   transition: transform 0.5s ease-out;
   transform: rotateX(-53deg);
+  user-select: none;
   animation:
-    roll-rotate 1900ms ease-out,
-    roll-end 1s ease-out 2500ms;
+    roll-rotate 2900ms ease-out,
+    roll-end 1s ease-out 3500ms;
 }
 .die[data-face="1"] {
   transform: rotateX(-53deg) rotateY(0deg);
