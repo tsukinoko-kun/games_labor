@@ -26,9 +26,12 @@ Ich habe getestet:
 
 Dabei waren die Ergebnisse von Gemini mit großem Abstand am besten.
 
-Ich verwende Gemini 2.5 Flash als Haupt-Model.
-Für die initiale Nachricht wird Gemini 2.5 Pro verwendet,
-da dieses Thinking Model einen sinnvolleren und vor allem interessanteren Story-Plan erzeugt.
+Ursprünglich hatte ich Gemini 2.5 Pro als Modell für die initiale Generierung der Story verwendet, weil dieses Modell bessere Story-Plane generiert. Das dauert aber zu lange.
+Vor kurzem wurde Gemini 2.5 Flash mit Reasoning ausgestattet, was es gut genug macht, um die Story-Plane zu generieren.
+
+Ich hatte Gemini 2.5 Flash Lite als Haupt-Modell vorgesehen, weil es noch schneller ist. Haupt-Modell heißt, es generiert alles nach dem initialen Story-Plan. Flash Lite hat sich aber schlecht and die Vorgaben gehalten. Beispielsweise hat es meine Anweisung komplett ignoriert dem Spieler zu sagen wofür er gerade würfelt.
+
+Jetzt verwende ich Gemini 2.5 Flash für alles.
 
 Die Geschwindigkeit variiert auch nach Tageszeit, was die Wahl des Modells erschwert.
 

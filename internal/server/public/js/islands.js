@@ -4602,7 +4602,7 @@ const DiceRollSchema = z.object({
   difficulty: z.number(),
   result: z.number()
 });
-const GameState = { INIT: 0, RUNNING: 1 };
+const GameState = { LOADING: -1, INIT: 0, RUNNING: 1 };
 const GameStateShema = z.nativeEnum(GameState);
 const GameDataShema = z.object({
   id: z.string(),
@@ -4870,7 +4870,7 @@ const ws = new WebSocket(gameWsUri.toString());
 const gameSync = new Sync({
   id: "",
   players: {},
-  state: 0,
+  state: GameState.LOADING,
   ai: {
     event_plan: [],
     event_long_history: [],
@@ -4996,6 +4996,8 @@ function continueAfterRoll() {
 function Game(props) {
   const g = useGameData();
   switch (g.state) {
+    case GameState.LOADING:
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Loading..." });
     case GameState.INIT:
       return /* @__PURE__ */ jsxRuntimeExports.jsx(Init, { ...props });
     case GameState.RUNNING:
@@ -5260,10 +5262,10 @@ function InitStart(props) {
   ] });
 }
 function InitPlayers() {
-  var _a;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i;
   const g = useGameData();
   const [playerDescription, setPlayerDescription] = reactExports.useState(
-    ((_a = g.players[myUserId]) == null ? void 0 : _a.description) ?? seededRandomCharacter()
+    ((_b = (_a = g.players[myUserId]) == null ? void 0 : _a.description) == null ? void 0 : _b.name) || ((_d = (_c = g.players[myUserId]) == null ? void 0 : _c.description) == null ? void 0 : _d.origin) || ((_f = (_e = g.players[myUserId]) == null ? void 0 : _e.description) == null ? void 0 : _f.appearance) || ((_h = (_g = g.players[myUserId]) == null ? void 0 : _g.description) == null ? void 0 : _h.age) ? (_i = g.players[myUserId]) == null ? void 0 : _i.description : seededRandomCharacter()
   );
   const playersList = Object.values(g.players);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [

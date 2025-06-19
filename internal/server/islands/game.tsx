@@ -28,6 +28,8 @@ interface Props {
 export function Game(props: Props) {
   const g = useGameData();
   switch (g.state) {
+    case GameState.LOADING:
+      return <p>Loading...</p>;
     case GameState.INIT:
       return <Init {...props} />;
     case GameState.RUNNING:
@@ -347,7 +349,12 @@ function InitStart(props: InitStartProps) {
 function InitPlayers() {
   const g = useGameData();
   const [playerDescription, setPlayerDescription] = useState<PlayerData>(
-    g.players[myUserId]?.description ?? seededRandomCharacter(),
+    g.players[myUserId]?.description?.name ||
+      g.players[myUserId]?.description?.origin ||
+      g.players[myUserId]?.description?.appearance ||
+      g.players[myUserId]?.description?.age
+      ? g.players[myUserId]?.description
+      : seededRandomCharacter(),
   );
 
   const playersList = Object.values(g.players);

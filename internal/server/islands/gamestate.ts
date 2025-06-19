@@ -1,4 +1,9 @@
-import { GameDataShema, PlayerData, type GameData } from "./types.ts";
+import {
+  GameDataShema,
+  GameState,
+  PlayerData,
+  type GameData,
+} from "./types.ts";
 import { Sync } from "./sync.ts";
 import z from "zod";
 import { zodErr } from "./util.ts";
@@ -21,7 +26,7 @@ const ws = new WebSocket(gameWsUri.toString());
 const gameSync = new Sync<GameData>({
   id: "",
   players: {},
-  state: 0,
+  state: GameState.LOADING,
   ai: {
     event_plan: [],
     event_long_history: [],

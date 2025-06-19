@@ -52,7 +52,7 @@ export const DiceRollSchema = z.object({
 });
 export type DiceRoll = z.infer<typeof DiceRollSchema>;
 
-export const GameState = { INIT: 0, RUNNING: 1 } as const;
+export const GameState = { LOADING: -1, INIT: 0, RUNNING: 1 } as const;
 export const GameStateShema = z.nativeEnum(GameState);
 export type GameState = z.infer<typeof GameStateShema>;
 
