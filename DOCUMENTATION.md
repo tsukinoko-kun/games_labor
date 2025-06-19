@@ -2,6 +2,21 @@
 
 Frank Mayer
 
+## UI
+
+Die UI ist mit React und TailwindCSS gebaut.
+Die React Components werden als Islands auf die HTML Seite gerendert.
+Das HTML kommt von [Templ](https://templ.dev/).
+
+Das Index-Seite ist statisch (kein React).
+Die Seite für das Spiel ist eine React single page application.
+
+Ein eigener React-Hook `useGameData` wird verwendet, um den aktuellen Game-State über das WebSocket zum Server zu synchronisieren.
+
+![](docs/screensho_setup.jpg)
+
+![](docs/screenshot_ingame.jpg)
+
 ## Models
 
 In meinem Test hat die Gemini Familie allgemein die beste Qualität an Text-Output.

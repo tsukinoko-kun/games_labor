@@ -5,12 +5,20 @@ import "gameslabor/internal/games"
 templ index() {
 	@layout("Games Labor") {
 		<p class="text-2xl font-bold">Welcome to Games Labor!</p>
+		if len(games.Games) > 0 {
+			Join a running game:
+		}
 		<ul>
 			for id, _ := range games.Games {
-				<li><a href={ templ.URL("/game?id=" + id) }>{ id }</a></li>
+				<li>
+					<a
+						class="underline text-blue-500 hover:text-blue-700"
+						href={ templ.URL("/game?id=" + id) }
+					>{ id }</a>
+				</li>
 			}
 		</ul>
-		<a href="/api/new_game">Create New Game</a>
+		<a href="/api/new_game" class="btn inline-block my-4">Create New Game</a>
 		<footer>
 			<a
 				class="text-blue-500 hover:text-blue-700 underline"
