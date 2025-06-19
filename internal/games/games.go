@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"gameslabor/internal/ai"
 	"gameslabor/internal/games/scenarios"
+	"gameslabor/internal/karmicdice"
 	"gameslabor/internal/server/hub"
 	"log"
-	"math/rand/v2"
 	"sync"
 
 	"github.com/google/uuid"
@@ -130,8 +130,8 @@ func (g *Game) continueWithPrompt(processingPrompt string) {
 	g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
 	hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
 	if resp.RollDice != nil {
-		r := rollDice(uint8(resp.RollDice.Difficulty))
-		g.Roll = r
+		r := karmicdice.Int(resp.RollDice.Difficulty)
+		g.Roll = &DiceRoll{Difficulty: uint8(resp.RollDice.Difficulty), Result: uint8(r)}
 	} else {
 		g.Roll = nil
 		g.AcceptingInput = true
@@ -148,10 +148,6 @@ func clamp[T cmp.Ordered](min, v, max T) T {
 		return max
 	}
 	return v
-}
-
-func rollDice(difficulty uint8) *DiceRoll {
-	return &DiceRoll{Difficulty: difficulty, Result: uint8(rand.UintN(clamp(1, uint(difficulty), 20)) + 1)}
 }
 
 func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {

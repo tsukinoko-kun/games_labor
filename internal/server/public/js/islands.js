@@ -5096,6 +5096,7 @@ const Roll = reactExports.memo(
         el == null ? void 0 : el.scrollIntoView({ behavior: "smooth" });
       }
     });
+    const [rolling, setRolling] = reactExports.useState(false);
     if (!props.roll) {
       return null;
     }
@@ -5104,27 +5105,37 @@ const Roll = reactExports.memo(
         "Schwierigkeit: ",
         props.roll.difficulty
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "p",
-        {
-          className: "die-outcome text-2xl font-bold text-center " + (props.roll.result >= props.roll.difficulty ? "text-green-400" : "text-red-400"),
-          children: props.roll.result >= props.roll.difficulty ? "Erfolg" : "Fehlschlag"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Die,
-        {
-          face: props.roll.result,
-          className: "h-[256px] w-full pointer-events-none"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
+      rolling ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "p",
+          {
+            className: "die-outcome text-2xl font-bold text-center " + (props.roll.result >= props.roll.difficulty ? "text-green-400" : "text-red-400"),
+            children: props.roll.result >= props.roll.difficulty ? "Erfolg" : "Fehlschlag"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Die,
+          {
+            face: props.roll.result,
+            className: "h-[256px] w-full pointer-events-none"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            className: "btn block mx-auto",
+            style: { marginTop: "20rem" },
+            onClick: () => continueAfterRoll(),
+            children: "Fortfahren"
+          }
+        )
+      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
           className: "btn block mx-auto",
-          style: { marginTop: "20rem" },
-          onClick: () => continueAfterRoll(),
-          children: "Fortfahren"
+          style: { marginTop: "22rem" },
+          onClick: () => setRolling(true),
+          children: "Würfeln"
         }
       )
     ] }) });

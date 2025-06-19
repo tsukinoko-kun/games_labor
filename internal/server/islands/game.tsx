@@ -149,6 +149,7 @@ const Roll = memo(
         el?.scrollIntoView({ behavior: "smooth" });
       }
     });
+    const [rolling, setRolling] = useState(false);
     if (!props.roll) {
       return null;
     }
@@ -158,29 +159,41 @@ const Roll = memo(
           <p className="text-white text-2xl font-bold text-center">
             Schwierigkeit: {props.roll.difficulty}
           </p>
-          <p
-            className={
-              "die-outcome text-2xl font-bold text-center " +
-              (props.roll.result >= props.roll.difficulty
-                ? "text-green-400"
-                : "text-red-400")
-            }
-          >
-            {props.roll.result >= props.roll.difficulty
-              ? "Erfolg"
-              : "Fehlschlag"}
-          </p>
-          <Die
-            face={props.roll.result}
-            className="h-[256px] w-full pointer-events-none"
-          />
-          <button
-            className="btn block mx-auto"
-            style={{ marginTop: "20rem" }}
-            onClick={() => continueAfterRoll()}
-          >
-            Fortfahren
-          </button>
+          {rolling ? (
+            <>
+              <p
+                className={
+                  "die-outcome text-2xl font-bold text-center " +
+                  (props.roll.result >= props.roll.difficulty
+                    ? "text-green-400"
+                    : "text-red-400")
+                }
+              >
+                {props.roll.result >= props.roll.difficulty
+                  ? "Erfolg"
+                  : "Fehlschlag"}
+              </p>
+              <Die
+                face={props.roll.result}
+                className="h-[256px] w-full pointer-events-none"
+              />
+              <button
+                className="btn block mx-auto"
+                style={{ marginTop: "20rem" }}
+                onClick={() => continueAfterRoll()}
+              >
+                Fortfahren
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn block mx-auto"
+              style={{ marginTop: "22rem" }}
+              onClick={() => setRolling(true)}
+            >
+              Würfeln
+            </button>
+          )}
         </div>
       </li>
     );
