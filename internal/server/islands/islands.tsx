@@ -27,7 +27,9 @@ async function main() {
       // ignore
     }
 
-    createRoot(island).render(createElement(ISLANDS[name as keyof typeof ISLANDS], props as any));
+    createRoot(island).render(
+      createElement(ISLANDS[name as keyof typeof ISLANDS], props as any),
+    );
   }
 }
 

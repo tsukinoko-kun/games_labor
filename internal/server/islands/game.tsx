@@ -20,6 +20,7 @@ import {
   type PlayerData,
 } from "./types.ts";
 import { myUserId, seededRandomCharacter, stringToColor } from "./util.ts";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Props {
   scenarios: { title: string; id: string; image: string }[];
@@ -274,6 +275,10 @@ function Init(props: Props) {
 
   return (
     <div className="max-w-7xl px-4 justify-center w-fit mx-auto block my-8 pb-64">
+      <QRCodeSVG
+        className="block invert mb-8 aspect-square max-w-full w-96 h-96"
+        value={window.location.href}
+      />
       <InitPlayers />
       <InitScenario
         scenarios={props.scenarios}
