@@ -43,12 +43,16 @@ func gameState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("game state", dataID)
+
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("websocket upgrade error: %v\n", err)
 		return
 	}
 	defer c.Close()
+
+	fmt.Println("ws connected")
 
 	if err := gameState_sendFullState(c, game); err != nil {
 		log.Printf("error sending full state: %v", err)

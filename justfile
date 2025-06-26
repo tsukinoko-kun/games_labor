@@ -1,11 +1,12 @@
 prebuild:
+    pnpm install
     pnpm run styles
     templ generate
     pnpm run islands
 
 run:
     @just prebuild
-    go run ./cmd/app --port 4321
+    go run ./cmd/app --port 54321
 
 dev:
     @just prebuild

@@ -186,7 +186,12 @@ func (g *Game) Start(scenario string, violenceLevel uint8, duration uint8) {
 	newChatMessage := ai.ChatMessage{Role: "model", Message: resp.NarratorText}
 	g.AI.ChatHistory = append(g.AI.ChatHistory, newChatMessage)
 	fmt.Printf("First message: %s\n", resp.JSON())
+	if resp.RollDice != nil {
+		r := karmicdice.Int(resp.RollDice.Difficulty)
+		g.Roll = &DiceRoll{Difficulty: uint8(resp.RollDice.Difficulty), Result: uint8(r)}
+	}
 	hub.Broadcast(g.ID, WsSetOrPush{"push", "ai.chat_history", newChatMessage})
+	hub.Broadcast(g.ID, WsSetOrPush{"set", "roll", g.Roll})
 
 	g.AcceptingInput = true
 	hub.Broadcast(g.ID, WsSetOrPush{"set", "accepting_input", true})
